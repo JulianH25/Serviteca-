@@ -1,15 +1,8 @@
+import './assets/main.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { useAuthStore } from './stores/auth'
+import { auth0 } from './services/auth0'
 
-const app = createApp(App)
-app.use(createPinia())
-
-const authStore = useAuthStore()
-
-authStore.cargarSesion().finally(() => {
-  app.use(router)
-  app.mount('#app')
-})
+createApp(App).use(createPinia()).use(auth0).use(router).mount('#app')

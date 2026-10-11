@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import clientesRouter from './routes/clientes.js'
 import vehiculosRouter from './routes/vehiculos.js'
 
 const app = express()
@@ -11,6 +12,7 @@ app.use(express.json())
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
+app.use('/api/clientes', clientesRouter)
 app.use('/api/vehiculos', vehiculosRouter)
 
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }))

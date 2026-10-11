@@ -1,20 +1,17 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuth0 } from '@auth0/auth0-vue'
 
-const authStore = useAuthStore()
-const router = useRouter()
+const { user, logout } = useAuth0()
 
-async function salir() {
-  await authStore.cerrarSesion()
-  router.push('/login')
+function salir() {
+  logout({ logoutParams: { returnTo: window.location.origin + '/login' } })
 }
 </script>
 
 <template>
   <div>
     <h2>Serviteca</h2>
-    <p>Sesión: {{ authStore.user?.email }}</p>
+    <p>Sesión: {{ user?.email }}</p>
     <router-link to="/vehiculos/nuevo">Registrar vehículo</router-link>
     <button @click="salir">Cerrar sesión</button>
   </div>

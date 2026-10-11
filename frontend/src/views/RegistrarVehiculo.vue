@@ -1,9 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
+import { api } from '@/services/api'
 
-const authStore = useAuthStore()
 const patente = ref('')
 const marca = ref('')
 const modelo = ref('')
@@ -13,14 +11,12 @@ const mensaje = ref('')
 
 async function registrar() {
   try {
-    await axios.post('http://localhost:3000/api/vehiculos', {
+    await api.post('/vehiculos', {
       patente: patente.value,
       marca: marca.value,
       modelo: modelo.value,
       anio: Number(anio.value),
       clienteId: Number(clienteId.value)
-    }, {
-      headers: { Authorization: `Bearer ${authStore.session.access_token}` }
     })
     mensaje.value = 'Vehículo registrado con éxito'
   } catch (e) {

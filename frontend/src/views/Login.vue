@@ -1,40 +1,41 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuth0 } from '@auth0/auth0-vue'
 
-const email = ref('')
-const password = ref('')
-const error = ref('')
-const cargando = ref(false)
-const router = useRouter()
-const authStore = useAuthStore()
-
-async function handleLogin() {
-  error.value = ''
-  cargando.value = true
-  try {
-    await authStore.iniciarSesion(email.value, password.value)
-    router.push('/')
-    } catch (e) {
-    console.error(e)
-    error.value = e.message || 'Credenciales inválidas'
-  } finally {
-    cargando.value = false
-  }
-}
+const { loginWithRedirect, isLoading } = useAuth0()
 </script>
 
 <template>
-  <div class="login">
-    <h2>Iniciar sesión</h2>
-    <form @submit.prevent="handleLogin">
-      <input v-model="email" type="email" placeholder="Correo" required />
-      <input v-model="password" type="password" placeholder="Contraseña" required />
-      <p v-if="error" class="error">{{ error }}</p>
-      <button type="submit" :disabled="cargando">
-        {{ cargando ? 'Ingresando...' : 'Ingresar' }}
-      </button>
-    </form>
+  <div class="login-wrap">
+    <div class="card login-card">
+      <h1>Serviteca</h1>
+      <p class="subtitulo">Inicia sesión para continuar</p>
+
+      <div class="acciones">
+        <button
+          type="button"
+          class="btn btn-primario"
+          :disabled="isLoading"
+          @click="loginWithRedirect()"
+        >
+          {{ isLoading ? 'Cargando...' : 'Ingresar' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 0;
+}
+</style>

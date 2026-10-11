@@ -4,34 +4,19 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["public", "auth"]
+  schemas  = ["public"]
 }
 
 // =====================================================================
-// AUTH (Supabase) - modelo mínimo, solo lo necesario para la relación
-// =====================================================================
-
-model User {
-  id       String    @id @db.Uuid
-  email    String?   @db.VarChar(255)
-  perfil   Perfil?
-
-  @@map("users")
-  @@schema("auth")
-}
-
-// =====================================================================
-// PERFILES - extiende auth.users con datos propios de la app
+// PERFILES - usuarios de la app (id = sub de Auth0)
 // =====================================================================
 
 model Perfil {
-  id       String   @id @db.Uuid
+  id       String   @id
   email    String?
   nombre   String?
   rol      String   @default("recepcion")
   creadoEn DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
-
-  user     User     @relation(fields: [id], references: [id], onDelete: Cascade)
 
   ordenesTrabajo        OrdenTrabajo[]
   movimientosInventario MovimientoInventario[]
@@ -44,7 +29,7 @@ model Perfil {
 }
 
 // =====================================================================
-// SPRINT 1: clientes, vehículos
+// SPRINT 1: clientes, vehiculos
 // =====================================================================
 
 model Cliente {
@@ -55,7 +40,7 @@ model Cliente {
   correo    String?  @db.VarChar(120)
   creadoEn  DateTime @default(now()) @map("creado_en")
 
-  vehiculos     Vehiculo[]
+  vehiculos      Vehiculo[]
   notificaciones Notificacion[]
 
   @@map("clientes")
@@ -72,9 +57,9 @@ model Vehiculo {
   kilometraje Int?
   creadoEn    DateTime @default(now()) @map("creado_en")
 
-  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  cliente        Cliente        @relation(fields: [clienteId], references: [id])
   ordenesTrabajo OrdenTrabajo[]
-  presupuestos  Presupuesto[]
+  presupuestos   Presupuesto[]
 
   @@index([clienteId], map: "idx_vehiculos_cliente")
   @@map("vehiculos")
@@ -82,7 +67,7 @@ model Vehiculo {
 }
 
 // =====================================================================
-// SPRINT 2: catálogo, órdenes e inventario
+// SPRINT 2: catalogo, ordenes e inventario
 // =====================================================================
 
 model Servicio {
@@ -120,7 +105,7 @@ model Producto {
   stockMinimo  Int      @default(0) @map("stock_minimo")
   activo       Boolean  @default(true)
 
-  categoria             CategoriaProducto?      @relation(fields: [categoriaId], references: [id])
+  categoria             CategoriaProducto?     @relation(fields: [categoriaId], references: [id])
   ordenProductos        OrdenProducto[]
   movimientosInventario MovimientoInventario[]
   presupuestoDetalle    PresupuestoDetalle[]
@@ -132,15 +117,15 @@ model Producto {
 model OrdenTrabajo {
   id            Int       @id @default(autoincrement())
   vehiculoId    Int       @map("vehiculo_id")
-  usuarioId     String    @map("usuario_id") @db.Uuid
+  usuarioId     String    @map("usuario_id")
   estado        String    @default("RECEPCIONADO") @db.VarChar(15)
   kmIngreso     Int?      @map("km_ingreso")
   observaciones String?
   fechaIngreso  DateTime  @default(now()) @map("fecha_ingreso")
   fechaEntrega  DateTime? @map("fecha_entrega")
 
-  vehiculo   Vehiculo @relation(fields: [vehiculoId], references: [id])
-  usuario    Perfil   @relation(fields: [usuarioId], references: [id])
+  vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id])
+  usuario  Perfil   @relation(fields: [usuarioId], references: [id])
 
   ordenServicios        OrdenServicio[]
   ordenProductos        OrdenProducto[]
@@ -186,14 +171,14 @@ model OrdenProducto {
 }
 
 model MovimientoInventario {
-  id          Int      @id @default(autoincrement())
-  productoId  Int      @map("producto_id")
-  tipo        String   @db.VarChar(10)
-  cantidad    Int
-  motivo      String?  @db.VarChar(200)
-  ordenId     Int?     @map("orden_id")
-  usuarioId   String   @map("usuario_id") @db.Uuid
-  fecha       DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  productoId Int      @map("producto_id")
+  tipo       String   @db.VarChar(10)
+  cantidad   Int
+  motivo     String?  @db.VarChar(200)
+  ordenId    Int?     @map("orden_id")
+  usuarioId  String   @map("usuario_id")
+  fecha      DateTime @default(now())
 
   producto Producto      @relation(fields: [productoId], references: [id])
   orden    OrdenTrabajo? @relation(fields: [ordenId], references: [id])
@@ -209,16 +194,16 @@ model MovimientoInventario {
 // =====================================================================
 
 model Presupuesto {
-  id           Int      @id @default(autoincrement())
-  vehiculoId   Int      @map("vehiculo_id")
-  ordenId      Int?     @map("orden_id")
-  usuarioId    String   @map("usuario_id") @db.Uuid
-  estado       String   @default("PENDIENTE") @db.VarChar(10)
-  fecha        DateTime @default(now()) @db.Date
-  validezDias  Int      @default(15) @map("validez_dias") @db.SmallInt
-  subtotal     Int      @default(0)
-  iva          Int      @default(0)
-  total        Int      @default(0)
+  id          Int      @id @default(autoincrement())
+  vehiculoId  Int      @map("vehiculo_id")
+  ordenId     Int?     @map("orden_id")
+  usuarioId   String   @map("usuario_id")
+  estado      String   @default("PENDIENTE") @db.VarChar(10)
+  fecha       DateTime @default(now()) @db.Date
+  validezDias Int      @default(15) @map("validez_dias") @db.SmallInt
+  subtotal    Int      @default(0)
+  iva         Int      @default(0)
+  total       Int      @default(0)
 
   vehiculo Vehiculo      @relation(fields: [vehiculoId], references: [id])
   orden    OrdenTrabajo? @relation(fields: [ordenId], references: [id])
@@ -230,13 +215,13 @@ model Presupuesto {
 }
 
 model PresupuestoDetalle {
-  id             Int     @id @default(autoincrement())
-  presupuestoId  Int     @map("presupuesto_id")
-  servicioId     Int?    @map("servicio_id")
-  productoId     Int?    @map("producto_id")
-  descripcion    String  @db.VarChar(200)
+  id             Int    @id @default(autoincrement())
+  presupuestoId  Int    @map("presupuesto_id")
+  servicioId     Int?   @map("servicio_id")
+  productoId     Int?   @map("producto_id")
+  descripcion    String @db.VarChar(200)
   cantidad       Int
-  precioUnitario Int     @map("precio_unitario")
+  precioUnitario Int    @map("precio_unitario")
 
   presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
   servicio    Servicio?   @relation(fields: [servicioId], references: [id])
@@ -251,11 +236,11 @@ model Pago {
   ordenId   Int      @map("orden_id")
   monto     Int
   metodo    String   @db.VarChar(15)
-  usuarioId String   @map("usuario_id") @db.Uuid
+  usuarioId String   @map("usuario_id")
   fecha     DateTime @default(now())
 
-  orden       OrdenTrabajo  @relation(fields: [ordenId], references: [id])
-  usuario     Perfil        @relation(fields: [usuarioId], references: [id])
+  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  usuario     Perfil       @relation(fields: [usuarioId], references: [id])
   comprobante Comprobante?
 
   @@map("pagos")
@@ -263,10 +248,10 @@ model Pago {
 }
 
 model Comprobante {
-  id            Int      @id @default(autoincrement())
-  pagoId        Int      @unique @map("pago_id")
-  numero        String   @unique @db.VarChar(20)
-  fechaEmision  DateTime @default(now()) @map("fecha_emision")
+  id           Int      @id @default(autoincrement())
+  pagoId       Int      @unique @map("pago_id")
+  numero       String   @unique @db.VarChar(20)
+  fechaEmision DateTime @default(now()) @map("fecha_emision")
 
   pago Pago @relation(fields: [pagoId], references: [id])
 
@@ -278,7 +263,7 @@ model OrdenEstadoHistorial {
   id        Int      @id @default(autoincrement())
   ordenId   Int      @map("orden_id")
   estado    String   @db.VarChar(15)
-  usuarioId String   @map("usuario_id") @db.Uuid
+  usuarioId String   @map("usuario_id")
   fecha     DateTime @default(now())
 
   orden   OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)

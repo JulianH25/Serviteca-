@@ -7,6 +7,5 @@ export const auth0 = createAuth0({
     redirect_uri: window.location.origin,
     audience: import.meta.env.VITE_AUTH0_AUDIENCE
   },
-  cacheLocation: 'localstorage',
-  useRefreshTokens: true
+  cacheLocation: 'localstorage'
 })

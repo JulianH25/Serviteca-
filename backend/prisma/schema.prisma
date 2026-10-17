@@ -12,11 +12,14 @@ datasource db {
 // =====================================================================
 
 model Perfil {
-  id       String   @id
-  email    String?
-  nombre   String?
-  rol      String   @default("recepcion")
-  creadoEn DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  id         String   @id
+  email      String?
+  nombre     String?
+  rol        String   @default("recepcion")
+  clienteRut String?  @unique @map("cliente_rut") @db.VarChar(12)
+  creadoEn   DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  cliente Cliente? @relation(fields: [clienteRut], references: [rut], onUpdate: Cascade)
 
   ordenesTrabajo        OrdenTrabajo[]
   movimientosInventario MovimientoInventario[]
@@ -42,6 +45,7 @@ model Cliente {
 
   vehiculos      Vehiculo[]
   notificaciones Notificacion[]
+  perfil         Perfil?
 
   @@map("clientes")
   @@schema("public")
@@ -49,7 +53,7 @@ model Cliente {
 
 model Vehiculo {
   id          Int      @id @default(autoincrement())
-  clienteId   Int      @map("cliente_id")
+  clienteRut  String   @map("cliente_rut") @db.VarChar(12)
   patente     String   @unique @db.VarChar(6)
   marca       String   @db.VarChar(50)
   modelo      String   @db.VarChar(50)
@@ -57,11 +61,11 @@ model Vehiculo {
   kilometraje Int?
   creadoEn    DateTime @default(now()) @map("creado_en")
 
-  cliente        Cliente        @relation(fields: [clienteId], references: [id])
+  cliente        Cliente        @relation(fields: [clienteRut], references: [rut], onUpdate: Cascade)
   ordenesTrabajo OrdenTrabajo[]
   presupuestos   Presupuesto[]
 
-  @@index([clienteId], map: "idx_vehiculos_cliente")
+  @@index([clienteRut], map: "idx_vehiculos_cliente_rut")
   @@map("vehiculos")
   @@schema("public")
 }

@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { clientesApi, mensajeError } from '@/services/api'
+import { formatearFecha } from '@/utils/validaciones'
 
 const router = useRouter()
 const clientes = ref([])
@@ -54,14 +55,15 @@ onMounted(cargar)
             <th>Teléfono</th>
             <th>Correo</th>
             <th>Vehículos</th>
+            <th>Registrado</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="5" class="vacio">Cargando...</td>
+            <td colspan="6" class="vacio">Cargando...</td>
           </tr>
           <tr v-else-if="!clientes.length">
-            <td colspan="5" class="vacio">No hay clientes registrados</td>
+            <td colspan="6" class="vacio">No hay clientes registrados</td>
           </tr>
           <tr
             v-for="c in clientes"
@@ -77,6 +79,7 @@ onMounted(cargar)
             <td>{{ c.telefono }}</td>
             <td>{{ c.correo || '—' }}</td>
             <td>{{ c._count?.vehiculos ?? c.vehiculos?.length ?? 0 }}</td>
+            <td>{{ formatearFecha(c.creadoEn) }}</td>
           </tr>
         </tbody>
       </table>

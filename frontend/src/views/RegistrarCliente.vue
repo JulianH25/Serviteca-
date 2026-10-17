@@ -2,7 +2,13 @@
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { clientesApi, mensajeError } from '@/services/api'
-import { formatearRut, rutValido, telefonoValido, correoValido } from '@/utils/validaciones'
+import {
+  formatearRut,
+  rutValido,
+  mensajeRut,
+  telefonoValido,
+  correoValido
+} from '@/utils/validaciones'
 
 const router = useRouter()
 const form = reactive({ nombre: '', rut: '', telefono: '', correo: '' })
@@ -11,7 +17,7 @@ const enviando = ref(false)
 const error = ref('')
 
 const errores = computed(() => ({
-  rut: !rutValido(form.rut) ? 'RUT inválido (revisa el dígito verificador)' : '',
+  rut: !rutValido(form.rut) ? mensajeRut(form.rut) : '',
   telefono: !telefonoValido(form.telefono) ? 'Ingresa un teléfono válido' : '',
   correo: !correoValido(form.correo) ? 'Correo inválido' : ''
 }))

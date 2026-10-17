@@ -30,6 +30,25 @@ export function rutValido(rut) {
   return dv === dvEsperado
 }
 
+// Calcula el dígito verificador esperado para un cuerpo de RUT
+export function calcularDv(rut) {
+  const cuerpo = limpiarRut(rut).slice(0, -1)
+  if (!/^\d{7,8}$/.test(cuerpo)) return ''
+  let suma = 0
+  let multiplo = 2
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += Number(cuerpo[i]) * multiplo
+    multiplo = multiplo === 7 ? 2 : multiplo + 1
+  }
+  const resto = 11 - (suma % 11)
+  return resto === 11 ? '0' : resto === 10 ? 'K' : String(resto)
+}
+
+export function mensajeRut(rut) {
+  const dv = calcularDv(rut)
+  return `RUT inválido${dv ? ` (el dígito verificador debería ser ${dv})` : ''}`
+}
+
 // ---------- Patente chilena ----------
 
 export function limpiarPatente(patente) {

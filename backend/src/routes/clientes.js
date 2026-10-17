@@ -65,6 +65,22 @@ router.get('/', verificarToken, async (req, res) => {
   }
 })
 
+// Buscar cliente por RUT (debe ir antes de /:id)
+router.get('/rut/:rut', verificarToken, async (req, res) => {
+  const rut = formatearRut(req.params.rut)
+  if (!rutValido(rut)) return res.status(400).json({ error: 'RUT inválido' })
+  try {
+    const cliente = await prisma.cliente.findUnique({
+      where: { rut },
+      select: { id: true, nombre: true, rut: true }
+    })
+    if (!cliente) return res.status(404).json({ error: 'No existe un cliente con ese RUT' })
+    res.json(cliente)
+  } catch (e) {
+    res.status(500).json({ error: 'No se pudo buscar el cliente' })
+  }
+})
+
 // Detalle con sus vehículos
 router.get('/:id', verificarToken, async (req, res) => {
   try {

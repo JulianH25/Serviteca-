@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { vehiculosApi, mensajeError } from '@/services/api'
+import { formatearFecha } from '@/utils/validaciones'
 
 const vehiculos = ref([])
 const busqueda = ref('')
@@ -33,7 +34,7 @@ onMounted(cargar)
   <div class="encabezado">
     <div>
       <h1>Vehículos</h1>
-      <p class="subtitulo">Busca por patente, marca o modelo</p>
+      <p class="subtitulo">Busca por patente, marca, modelo o RUT del dueño</p>
     </div>
     <RouterLink to="/vehiculos/nuevo" class="btn btn-primario">+ Nuevo vehículo</RouterLink>
   </div>
@@ -51,15 +52,16 @@ onMounted(cargar)
             <th>Marca / modelo</th>
             <th>Año</th>
             <th>Dueño</th>
+            <th>Registrado</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="5" class="vacio">Cargando...</td>
+            <td colspan="6" class="vacio">Cargando...</td>
           </tr>
           <tr v-else-if="!vehiculos.length">
-            <td colspan="5" class="vacio">No se encontraron vehículos</td>
+            <td colspan="6" class="vacio">No se encontraron vehículos</td>
           </tr>
           <tr v-for="v in vehiculos" v-else :key="v.id">
             <td><span class="patente">{{ v.patente }}</span></td>
@@ -70,6 +72,7 @@ onMounted(cargar)
                 {{ v.cliente.nombre }}
               </RouterLink>
             </td>
+            <td>{{ formatearFecha(v.creadoEn) }}</td>
             <td>
               <RouterLink :to="`/vehiculos/${v.id}/historial`">Historial →</RouterLink>
             </td>

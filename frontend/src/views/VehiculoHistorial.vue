@@ -47,7 +47,7 @@ function totalOrden(orden) {
           {{ vehiculo.marca }} {{ vehiculo.modelo }}
         </h1>
         <p class="subtitulo">
-          Año {{ vehiculo.anio }}
+          Año {{ vehiculo.anio }} · Registrado el {{ formatearFecha(vehiculo.creadoEn) }}
           <template v-if="vehiculo.cliente">
             · Dueño:
             <RouterLink :to="`/clientes/${vehiculo.cliente.id}`">{{ vehiculo.cliente.nombre }}</RouterLink>

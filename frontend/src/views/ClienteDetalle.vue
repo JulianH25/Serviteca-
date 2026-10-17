@@ -34,7 +34,7 @@ onMounted(async () => {
         <p class="subtitulo">Cliente desde {{ formatearFecha(cliente.creadoEn) }}</p>
       </div>
       <RouterLink
-        :to="{ path: '/vehiculos/nuevo', query: { clienteId: cliente.id } }"
+        :to="{ path: '/vehiculos/nuevo', query: { clienteRut: cliente.rut } }"
         class="btn btn-primario"
       >
         + Agregar vehículo
@@ -56,6 +56,10 @@ onMounted(async () => {
           <dt>Correo</dt>
           <dd>{{ cliente.correo || '—' }}</dd>
         </div>
+        <div>
+          <dt>Fecha de registro</dt>
+          <dd>{{ formatearFecha(cliente.creadoEn) }}</dd>
+        </div>
       </dl>
     </div>
 
@@ -69,18 +73,20 @@ onMounted(async () => {
               <th>Marca / modelo</th>
               <th>Año</th>
               <th>Kilometraje</th>
+              <th>Registrado</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!cliente.vehiculos?.length">
-              <td colspan="5" class="vacio">Este cliente aún no tiene vehículos asociados</td>
+              <td colspan="6" class="vacio">Este cliente aún no tiene vehículos asociados</td>
             </tr>
             <tr v-for="v in cliente.vehiculos" :key="v.id">
               <td><span class="patente">{{ v.patente }}</span></td>
               <td>{{ v.marca }} {{ v.modelo }}</td>
               <td>{{ v.anio }}</td>
               <td>{{ v.kilometraje ? `${v.kilometraje.toLocaleString('es-CL')} km` : '—' }}</td>
+              <td>{{ formatearFecha(v.creadoEn) }}</td>
               <td>
                 <RouterLink :to="`/vehiculos/${v.id}/historial`">Ver historial →</RouterLink>
               </td>

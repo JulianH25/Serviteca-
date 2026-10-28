@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public"]
+}
+
+// =====================================================================
+// PERFILES - usuarios de la app (id = sub de Auth0)
+// =====================================================================
+
+model Perfil {
+  id         String   @id
+  email      String?
+  nombre     String?
+  rol        String   @default("recepcion")
+  clienteRut String?  @unique @map("cliente_rut") @db.VarChar(12)
+  creadoEn   DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  cliente Cliente? @relation(fields: [clienteRut], references: [rut], onUpdate: Cascade)
+
+  ordenesTrabajo        OrdenTrabajo[]
+  movimientosInventario MovimientoInventario[]
+  presupuestos          Presupuesto[]
+  pagos                 Pago[]
+  ordenEstadosHistorial OrdenEstadoHistorial[]
+
+  @@map("perfiles")
+  @@schema("public")
+}
+
+// =====================================================================
+// SPRINT 1: clientes, vehiculos
+// =====================================================================
+
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @db.VarChar(120)
+  rut       String   @unique @db.VarChar(12)
+  telefono  String   @db.VarChar(20)
+  correo    String?  @db.VarChar(120)
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  vehiculos      Vehiculo[]
+  notificaciones Notificacion[]
+  perfil         Perfil?
+
+  @@map("clientes")
+  @@schema("public")
+}
+
+model Vehiculo {
+  id          Int      @id @default(autoincrement())
+  clienteRut  String   @map("cliente_rut") @db.VarChar(12)
+  patente     String   @unique @db.VarChar(6)
+  marca       String   @db.VarChar(50)
+  modelo      String   @db.VarChar(50)
+  anio        Int      @db.SmallInt
+  kilometraje Int?
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  cliente        Cliente        @relation(fields: [clienteRut], references: [rut], onUpdate: Cascade)
+  ordenesTrabajo OrdenTrabajo[]
+  presupuestos   Presupuesto[]
+
+  @@index([clienteRut], map: "idx_vehiculos_cliente_rut")
+  @@map("vehiculos")
+  @@schema("public")
+}
+
+// =====================================================================
+// SPRINT 2: catalogo, ordenes e inventario
+// =====================================================================
+
+model Servicio {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(80)
+  descripcion String?
+  precioBase  Int      @default(0) @map("precio_base")
+  activo      Boolean  @default(true)
+
+  ordenServicios     OrdenServicio[]
+  presupuestoDetalle PresupuestoDetalle[]
+
+  @@map("servicios")
+  @@schema("public")
+}
+
+model CategoriaProducto {
+  id     Int    @id @default(autoincrement())
+  nombre String @unique @db.VarChar(60)
+
+  productos Producto[]
+
+  @@map("categorias_producto")
+  @@schema("public")
+}
+
+model Producto {
+  id           Int      @id @default(autoincrement())
+  codigo       String?  @unique @db.VarChar(30)
+  nombre       String   @db.VarChar(120)
+  categoriaId  Int?     @map("categoria_id")
+  costo        Int      @default(0)
+  precioVenta  Int      @map("precio_venta")
+  stockActual  Int      @default(0) @map("stock_actual")
+  stockMinimo  Int      @default(0) @map("stock_minimo")
+  activo       Boolean  @default(true)
+
+  categoria             CategoriaProducto?     @relation(fields: [categoriaId], references: [id])
+  ordenProductos        OrdenProducto[]
+  movimientosInventario MovimientoInventario[]
+  presupuestoDetalle    PresupuestoDetalle[]
+
+  @@map("productos")
+  @@schema("public")
+}
+
+model OrdenTrabajo {
+  id            Int       @id @default(autoincrement())
+  vehiculoId    Int       @map("vehiculo_id")
+  usuarioId     String    @map("usuario_id")
+  estado        String    @default("RECEPCIONADO") @db.VarChar(15)
+  kmIngreso     Int?      @map("km_ingreso")
+  observaciones String?
+  fechaIngreso  DateTime  @default(now()) @map("fecha_ingreso")
+  fechaEntrega  DateTime? @map("fecha_entrega")
+
+  vehiculo Vehiculo @relation(fields: [vehiculoId], references: [id])
+  usuario  Perfil   @relation(fields: [usuarioId], references: [id])
+
+  ordenServicios        OrdenServicio[]
+  ordenProductos        OrdenProducto[]
+  movimientosInventario MovimientoInventario[]
+  presupuestos          Presupuesto[]
+  pagos                 Pago[]
+  estadosHistorial      OrdenEstadoHistorial[]
+  notificaciones        Notificacion[]
+
+  @@index([vehiculoId], map: "idx_ordenes_vehiculo")
+  @@index([estado], map: "idx_ordenes_estado")
+  @@map("ordenes_trabajo")
+  @@schema("public")
+}
+
+model OrdenServicio {
+  id             Int     @id @default(autoincrement())
+  ordenId        Int     @map("orden_id")
+  servicioId     Int     @map("servicio_id")
+  cantidad       Int     @default(1)
+  precioUnitario Int     @map("precio_unitario")
+  notas          String?
+
+  orden    OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  servicio Servicio     @relation(fields: [servicioId], references: [id])
+
+  @@map("orden_servicios")
+  @@schema("public")
+}
+
+model OrdenProducto {
+  id             Int @id @default(autoincrement())
+  ordenId        Int @map("orden_id")
+  productoId     Int @map("producto_id")
+  cantidad       Int
+  precioUnitario Int @map("precio_unitario")
+
+  orden    OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  producto Producto     @relation(fields: [productoId], references: [id])
+
+  @@map("orden_productos")
+  @@schema("public")
+}
+
+model MovimientoInventario {
+  id         Int      @id @default(autoincrement())
+  productoId Int      @map("producto_id")
+  tipo       String   @db.VarChar(10)
+  cantidad   Int
+  motivo     String?  @db.VarChar(200)
+  ordenId    Int?     @map("orden_id")
+  usuarioId  String   @map("usuario_id")
+  fecha      DateTime @default(now())
+
+  producto Producto      @relation(fields: [productoId], references: [id])
+  orden    OrdenTrabajo? @relation(fields: [ordenId], references: [id])
+  usuario  Perfil        @relation(fields: [usuarioId], references: [id])
+
+  @@index([productoId], map: "idx_mov_producto")
+  @@map("movimientos_inventario")
+  @@schema("public")
+}
+
+// =====================================================================
+// SPRINT 3: presupuestos, pagos, seguimiento
+// =====================================================================
+
+model Presupuesto {
+  id          Int      @id @default(autoincrement())
+  vehiculoId  Int      @map("vehiculo_id")
+  ordenId     Int?     @map("orden_id")
+  usuarioId   String   @map("usuario_id")
+  estado      String   @default("PENDIENTE") @db.VarChar(10)
+  fecha       DateTime @default(now()) @db.Date
+  validezDias Int      @default(15) @map("validez_dias") @db.SmallInt
+  subtotal    Int      @default(0)
+  iva         Int      @default(0)
+  total       Int      @default(0)
+
+  vehiculo Vehiculo      @relation(fields: [vehiculoId], references: [id])
+  orden    OrdenTrabajo? @relation(fields: [ordenId], references: [id])
+  usuario  Perfil        @relation(fields: [usuarioId], references: [id])
+  detalle  PresupuestoDetalle[]
+
+  @@map("presupuestos")
+  @@schema("public")
+}
+
+model PresupuestoDetalle {
+  id             Int    @id @default(autoincrement())
+  presupuestoId  Int    @map("presupuesto_id")
+  servicioId     Int?   @map("servicio_id")
+  productoId     Int?   @map("producto_id")
+  descripcion    String @db.VarChar(200)
+  cantidad       Int
+  precioUnitario Int    @map("precio_unitario")
+
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  servicio    Servicio?   @relation(fields: [servicioId], references: [id])
+  producto    Producto?   @relation(fields: [productoId], references: [id])
+
+  @@map("presupuesto_detalle")
+  @@schema("public")
+}
+
+model Pago {
+  id        Int      @id @default(autoincrement())
+  ordenId   Int      @map("orden_id")
+  monto     Int
+  metodo    String   @db.VarChar(15)
+  usuarioId String   @map("usuario_id")
+  fecha     DateTime @default(now())
+
+  orden       OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  usuario     Perfil       @relation(fields: [usuarioId], references: [id])
+  comprobante Comprobante?
+
+  @@map("pagos")
+  @@schema("public")
+}
+
+model Comprobante {
+  id           Int      @id @default(autoincrement())
+  pagoId       Int      @unique @map("pago_id")
+  numero       String   @unique @db.VarChar(20)
+  fechaEmision DateTime @default(now()) @map("fecha_emision")
+
+  pago Pago @relation(fields: [pagoId], references: [id])
+
+  @@map("comprobantes")
+  @@schema("public")
+}
+
+model OrdenEstadoHistorial {
+  id        Int      @id @default(autoincrement())
+  ordenId   Int      @map("orden_id")
+  estado    String   @db.VarChar(15)
+  usuarioId String   @map("usuario_id")
+  fecha     DateTime @default(now())
+
+  orden   OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  usuario Perfil       @relation(fields: [usuarioId], references: [id])
+
+  @@map("orden_estados_historial")
+  @@schema("public")
+}
+
+model Notificacion {
+  id        Int       @id @default(autoincrement())
+  ordenId   Int       @map("orden_id")
+  clienteId Int       @map("cliente_id")
+  canal     String    @db.VarChar(10)
+  mensaje   String
+  enviadaEn DateTime? @map("enviada_en")
+
+  orden   OrdenTrabajo @relation(fields: [ordenId], references: [id])
+  cliente Cliente      @relation(fields: [clienteId], references: [id])
+
+  @@map("notificaciones")
+  @@schema("public")
+}

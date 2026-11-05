@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { vehiculosApi, mensajeError } from '@/services/api'
 import { formatearFecha, formatearPesos } from '@/utils/validaciones'
+import { etiquetaEstado } from '@/utils/ordenes'
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -71,8 +72,10 @@ function totalOrden(orden) {
           <div class="fecha">{{ formatearFecha(o.fechaIngreso) }}</div>
           <div class="detalle">
             <div class="fila-titulo">
-              <strong>Orden #{{ o.id }}</strong>
-              <span class="estado">{{ o.estado }}</span>
+              <strong>
+                <RouterLink :to="`/ordenes/${o.id}`">Orden #{{ o.id }}</RouterLink>
+              </strong>
+              <span class="estado">{{ etiquetaEstado(o.estado) }}</span>
             </div>
             <ul class="servicios">
               <li v-for="s in o.ordenServicios" :key="s.id">

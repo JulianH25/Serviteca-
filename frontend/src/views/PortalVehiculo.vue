@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { portalApi, mensajeError } from '@/services/api'
 import { formatearFecha, formatearPesos } from '@/utils/validaciones'
+import OrdenProgreso from '@/components/OrdenProgreso.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -69,6 +70,13 @@ function etiquetaEstado(estado) {
               <strong>Orden #{{ o.id }}</strong>
               <span class="estado">{{ etiquetaEstado(o.estado) }}</span>
             </div>
+
+            <OrdenProgreso
+              v-if="o.estado !== 'ENTREGADO'"
+              :estado="o.estado"
+              :historial="o.estadosHistorial"
+              style="margin: 0.75rem 0"
+            />
 
             <ul v-if="o.ordenServicios.length" class="lista">
               <li v-for="s in o.ordenServicios" :key="`s${s.id}`">

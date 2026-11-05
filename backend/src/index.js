@@ -10,6 +10,10 @@ import productosRouter from './routes/productos.js'
 import { identificar, verificarToken } from './middleware/auth.js'
 import { prisma } from './lib/prisma.js'
 import ordenesRouter from './routes/ordenes.js'
+import 'dotenv/config'
+import fs from 'fs'
+console.log('existe .env:', fs.existsSync('.env'))
+console.log('contenido:', JSON.stringify(fs.readFileSync('.env', 'utf8').slice(0, 80)))
 
 const app = express()
 const PORT = process.env.PORT || 3000

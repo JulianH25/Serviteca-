@@ -42,7 +42,8 @@ export async function identificar(req, res, next) {
       issuer,
       audience: process.env.AUTH0_AUDIENCE
     }))
-  } catch (e) {
+    } catch (e) {
+    console.error('JWT error:', e.code, e.message, e.cause)
     return res.status(401).json({ error: 'Token inválido' })
   }
 

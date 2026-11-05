@@ -1,12 +1,36 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAuth0 } from '@auth0/auth0-vue'
+import { portalApi } from '@/services/api'
 
 const { user, logout } = useAuth0()
+const route = useRoute()
+const noLeidas = ref(0)
+
+async function actualizarConteo() {
+  try {
+    noLeidas.value = await portalApi.noLeidas()
+  } catch (e) {
+    // el conteo es secundario: se ignora el error
+  }
+}
 
 function salir() {
   logout({ logoutParams: { returnTo: `${window.location.origin}/portal/login` } })
 }
+
+let intervalo
+onMounted(() => {
+  actualizarConteo()
+  intervalo = setInterval(actualizarConteo, 60000)
+  window.addEventListener('notificaciones-leidas', actualizarConteo)
+})
+onBeforeUnmount(() => {
+  clearInterval(intervalo)
+  window.removeEventListener('notificaciones-leidas', actualizarConteo)
+})
+watch(() => route.fullPath, actualizarConteo)
 </script>
 
 <template>
@@ -17,6 +41,10 @@ function salir() {
         <span>Serviteca</span>
       </RouterLink>
       <div class="usuario">
+        <RouterLink to="/portal/notificaciones" class="campana" aria-label="Notificaciones">
+          🔔
+          <span v-if="noLeidas" class="contador">{{ noLeidas > 9 ? '9+' : noLeidas }}</span>
+        </RouterLink>
         <small>{{ user?.email }}</small>
         <button class="salir" @click="salir">Cerrar sesión</button>
       </div>
@@ -66,6 +94,28 @@ function salir() {
 
 .usuario small {
   color: #9aa4b2;
+}
+
+.campana {
+  position: relative;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.contador {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
 }
 
 .salir {

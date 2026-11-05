@@ -284,6 +284,7 @@ model Notificacion {
   canal     String    @db.VarChar(10)
   mensaje   String
   enviadaEn DateTime? @map("enviada_en")
+  leidaEn   DateTime? @map("leida_en")
 
   orden   OrdenTrabajo @relation(fields: [ordenId], references: [id])
   cliente Cliente      @relation(fields: [clienteId], references: [id])

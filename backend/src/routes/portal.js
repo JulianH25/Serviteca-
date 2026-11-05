@@ -132,6 +132,10 @@ router.get('/vehiculos/:id', identificar, soloCliente, async (req, res) => {
             fechaIngreso: true,
             fechaEntrega: true,
             kmIngreso: true,
+            estadosHistorial: {
+              orderBy: { fecha: 'asc' },
+              select: { estado: true, fecha: true }
+            },
             ordenServicios: {
               select: {
                 id: true,
@@ -157,6 +161,53 @@ router.get('/vehiculos/:id', identificar, soloCliente, async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'No se pudo obtener el vehículo' })
+  }
+})
+
+// Mis notificaciones
+router.get('/notificaciones', identificar, soloCliente, async (req, res) => {
+  try {
+    const notificaciones = await prisma.notificacion.findMany({
+      where: { cliente: { rut: req.cliente.rut } },
+      select: {
+        id: true,
+        mensaje: true,
+        enviadaEn: true,
+        leidaEn: true,
+        orden: { select: { id: true, vehiculo: { select: { id: true, patente: true } } } }
+      },
+      orderBy: { id: 'desc' },
+      take: 50
+    })
+    res.json(notificaciones)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'No se pudieron obtener tus notificaciones' })
+  }
+})
+
+router.get('/notificaciones/no-leidas', identificar, soloCliente, async (req, res) => {
+  try {
+    const total = await prisma.notificacion.count({
+      where: { cliente: { rut: req.cliente.rut }, leidaEn: null }
+    })
+    res.json({ total })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'No se pudo obtener el conteo' })
+  }
+})
+
+router.post('/notificaciones/leer', identificar, soloCliente, async (req, res) => {
+  try {
+    await prisma.notificacion.updateMany({
+      where: { cliente: { rut: req.cliente.rut }, leidaEn: null },
+      data: { leidaEn: new Date() }
+    })
+    res.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'No se pudieron marcar como leídas' })
   }
 })
 

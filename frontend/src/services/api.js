@@ -98,5 +98,8 @@ export const portalApi = {
   vincular: (d) => api.post('/portal/vincular', d).then(datos),
   cliente: () => api.get('/portal/cliente').then(datos),
   vehiculos: () => api.get('/portal/vehiculos').then(datos),
-  vehiculo: (id) => api.get(`/portal/vehiculos/${id}`).then(datos)
+  vehiculo: (id) => api.get(`/portal/vehiculos/${id}`).then(datos),
+  notificaciones: () => api.get('/portal/notificaciones').then(datos),
+  noLeidas: () => api.get('/portal/notificaciones/no-leidas').then((r) => r.data.total),
+  marcarLeidas: () => api.post('/portal/notificaciones/leer').then(datos)
 }

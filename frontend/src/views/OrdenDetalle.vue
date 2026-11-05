@@ -5,6 +5,7 @@ import { ordenesApi, serviciosApi, productosApi, mensajeError } from '@/services
 import { formatearFecha, formatearPesos } from '@/utils/validaciones'
 import { ESTADOS, ESTADOS_CERRADOS, fechaHora, nombreUsuario } from '@/utils/ordenes'
 import EstadoBadge from '@/components/EstadoBadge.vue'
+import OrdenProgreso from '@/components/OrdenProgreso.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -138,6 +139,11 @@ onMounted(async () => {
     </div>
 
     <p v-if="error" class="alerta alerta-error">{{ error }}</p>
+
+    <div class="card">
+      <h2>Seguimiento</h2>
+      <OrdenProgreso :estado="orden.estado" :historial="orden.estadosHistorial" />
+    </div>
 
     <div class="card">
       <h2>Datos de la orden</h2>
@@ -292,6 +298,19 @@ onMounted(async () => {
       </ol>
       <small class="desc">Ingresó el {{ formatearFecha(orden.fechaIngreso) }}</small>
     </div>
+
+    <div class="card">
+      <h2>Notificaciones al cliente</h2>
+      <p v-if="!orden.notificaciones?.length" class="vacio">Aún no se han enviado notificaciones.</p>
+      <ul v-else class="notifs">
+        <li v-for="n in orden.notificaciones" :key="n.id">
+          <span>{{ n.mensaje }}</span>
+          <small class="desc">
+            {{ fechaHora(n.enviadaEn) }} · {{ n.canal }} · {{ n.leidaEn ? 'leída' : 'sin leer' }}
+          </small>
+        </li>
+      </ul>
+    </div>
   </template>
 </template>
 
@@ -333,6 +352,18 @@ onMounted(async () => {
   gap: 0.75rem;
   align-items: center;
   padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.notifs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notifs li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
 }
 </style>

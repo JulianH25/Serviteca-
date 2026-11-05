@@ -23,6 +23,7 @@ import PortalLogin from '@/views/PortalLogin.vue'
 import PortalVincular from '@/views/PortalVincular.vue'
 import PortalInicio from '@/views/PortalInicio.vue'
 import PortalVehiculo from '@/views/PortalVehiculo.vue'
+import PortalNotificaciones from '@/views/PortalNotificaciones.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -43,6 +44,7 @@ const router = createRouter({
       meta: { zona: 'portal', requiereAuth: true },
       children: [
         { path: '', name: 'portal-inicio', component: PortalInicio },
+        { path: 'notificaciones', name: 'portal-notificaciones', component: PortalNotificaciones },
         { path: 'vehiculos/:id', name: 'portal-vehiculo', component: PortalVehiculo, props: true }
       ]
     },

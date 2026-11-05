@@ -3,6 +3,7 @@ import { verificarToken } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
 import { limpiarPatente } from '../lib/validaciones.js'
+import { notificarEstado } from '../lib/notificaciones.js'
 
 const router = Router()
 
@@ -31,7 +32,8 @@ const incluirDetalle = {
   estadosHistorial: {
     orderBy: { fecha: 'asc' },
     include: { usuario: { select: { nombre: true, email: true } } }
-  }
+  },
+  notificaciones: { orderBy: { id: 'desc' } }
 }
 
 function totalOrden(orden) {
@@ -217,6 +219,12 @@ router.post('/', verificarToken, async (req, res) => {
       await tx.ordenEstadoHistorial.create({
         data: { ordenId: orden.id, estado: orden.estado, usuarioId: req.usuario.id }
       })
+      await notificarEstado(tx, {
+        ordenId: orden.id,
+        clienteRut: vehiculo.clienteRut,
+        patente: vehiculo.patente,
+        estado: orden.estado
+      })
       if (kmIngreso !== null && kmIngreso > (vehiculo.kilometraje ?? 0)) {
         await tx.vehiculo.update({ where: { id: vehiculoId }, data: { kilometraje: kmIngreso } })
       }
@@ -230,7 +238,7 @@ router.post('/', verificarToken, async (req, res) => {
   }
 })
 
-// Cambiar estado (CANCELADO devuelve el stock de los productos)
+// Cambiar estado (CANCELADO devuelve el stock de los productos) y notifica al cliente
 router.patch('/:id/estado', verificarToken, async (req, res) => {
   const id = Number(req.params.id)
   const estado = String(req.body.estado ?? '').toUpperCase()
@@ -239,7 +247,13 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
 
   try {
     await prisma.$transaction(async (tx) => {
-      const orden = await tx.ordenTrabajo.findUnique({ where: { id }, include: { ordenProductos: true } })
+      const orden = await tx.ordenTrabajo.findUnique({
+        where: { id },
+        include: {
+          ordenProductos: true,
+          vehiculo: { select: { patente: true, clienteRut: true } }
+        }
+      })
       if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
       if (ESTADOS_CERRADOS.includes(orden.estado)) {
         throw new ErrorNegocio('La orden está cerrada (entregada o cancelada) y no se puede modificar')
@@ -271,6 +285,12 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
       })
       await tx.ordenEstadoHistorial.create({
         data: { ordenId: id, estado, usuarioId: req.usuario.id }
+      })
+      await notificarEstado(tx, {
+        ordenId: id,
+        clienteRut: orden.vehiculo.clienteRut,
+        patente: orden.vehiculo.patente,
+        estado
       })
     }, TX)
 

@@ -6,6 +6,8 @@ export const ESTADOS = [
   { valor: 'CANCELADO', texto: 'Cancelado' }
 ]
 
+export const FLUJO = ['RECEPCIONADO', 'EN_PROCESO', 'TERMINADO', 'ENTREGADO']
+
 export const ESTADOS_CERRADOS = ['ENTREGADO', 'CANCELADO']
 
 export const etiquetaEstado = (estado) =>

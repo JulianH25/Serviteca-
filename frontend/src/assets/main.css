@@ -240,3 +240,37 @@ tbody tr:hover {
   margin: 0.2rem 0 0;
   font-weight: 600;
 }
+
+/* =====================================================================
+   SPRINT 3: impresión de presupuestos y comprobantes
+   Al imprimir (o "Guardar como PDF") solo sale el documento.
+   ===================================================================== */
+@media print {
+  .sidebar,
+  .no-imprimir {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .layout {
+    display: block !important;
+  }
+
+  .contenido {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .documento {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  tbody tr:hover {
+    background: none;
+  }
+}

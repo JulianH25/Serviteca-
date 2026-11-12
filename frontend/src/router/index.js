@@ -19,6 +19,12 @@ import ServiciosView from '@/views/ServiciosView.vue'
 import ProductosView from '@/views/ProductosView.vue'
 import RegistrarProducto from '@/views/RegistrarProducto.vue'
 import ProductoDetalle from '@/views/ProductoDetalle.vue'
+// Sprint 3
+import PresupuestosView from '@/views/PresupuestosView.vue'
+import NuevoPresupuesto from '@/views/NuevoPresupuesto.vue'
+import PresupuestoDetalle from '@/views/PresupuestoDetalle.vue'
+import PagosView from '@/views/PagosView.vue'
+import ComprobanteView from '@/views/ComprobanteView.vue'
 import PortalLogin from '@/views/PortalLogin.vue'
 import PortalVincular from '@/views/PortalVincular.vue'
 import PortalInicio from '@/views/PortalInicio.vue'
@@ -73,7 +79,18 @@ const router = createRouter({
         { path: 'servicios', name: 'servicios', component: ServiciosView },
         { path: 'productos', name: 'productos', component: ProductosView },
         { path: 'productos/nuevo', name: 'producto-nuevo', component: RegistrarProducto },
-        { path: 'productos/:id', name: 'producto-detalle', component: ProductoDetalle, props: true }
+        { path: 'productos/:id', name: 'producto-detalle', component: ProductoDetalle, props: true },
+        // ---- Sprint 3: presupuestos, pagos y comprobantes ----
+        { path: 'presupuestos', name: 'presupuestos', component: PresupuestosView },
+        { path: 'presupuestos/nuevo', name: 'presupuesto-nuevo', component: NuevoPresupuesto },
+        {
+          path: 'presupuestos/:id',
+          name: 'presupuesto-detalle',
+          component: PresupuestoDetalle,
+          props: true
+        },
+        { path: 'pagos', name: 'pagos', component: PagosView },
+        { path: 'comprobantes/:id', name: 'comprobante', component: ComprobanteView, props: true }
       ]
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }

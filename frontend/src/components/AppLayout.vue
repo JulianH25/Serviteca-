@@ -9,6 +9,8 @@ const menuAbierto = ref(false)
 const enlaces = [
   { to: '/', texto: 'Inicio' },
   { to: '/ordenes', texto: 'Órdenes' },
+  { to: '/presupuestos', texto: 'Presupuestos' },
+  { to: '/pagos', texto: 'Pagos' },
   { to: '/clientes', texto: 'Clientes' },
   { to: '/vehiculos', texto: 'Vehículos' },
   { to: '/servicios', texto: 'Servicios' },

@@ -103,3 +103,26 @@ export const portalApi = {
   noLeidas: () => api.get('/portal/notificaciones/no-leidas').then((r) => r.data.total),
   marcarLeidas: () => api.post('/portal/notificaciones/leer').then(datos)
 }
+// =====================================================================
+// SPRINT 3 (el contrato de cada endpoint está en docs/api-sprint3.md)
+// =====================================================================
+
+// ---------- Presupuestos ----------
+export const presupuestosApi = {
+  listar: (params = {}) => api.get('/presupuestos', { params }).then(datos),
+  obtener: (id) => api.get(`/presupuestos/${id}`).then(datos),
+  crear: (d) => api.post('/presupuestos', d).then(datos),
+  cambiarEstado: (id, estado) => api.patch(`/presupuestos/${id}/estado`, { estado }).then(datos),
+  convertirEnOrden: (id) => api.post(`/presupuestos/${id}/orden`).then(datos)
+}
+
+// ---------- Pagos y comprobantes ----------
+export const pagosApi = {
+  listar: (params = {}) => api.get('/pagos', { params }).then(datos),
+  deOrden: (ordenId) => api.get(`/ordenes/${ordenId}/pagos`).then(datos),
+  registrar: (ordenId, d) => api.post(`/ordenes/${ordenId}/pagos`, d).then(datos)
+}
+
+export const comprobantesApi = {
+  obtener: (id) => api.get(`/comprobantes/${id}`).then(datos)
+}

@@ -6,6 +6,7 @@ import { formatearFecha, formatearPesos } from '@/utils/validaciones'
 import { ESTADOS, ESTADOS_CERRADOS, fechaHora, nombreUsuario } from '@/utils/ordenes'
 import EstadoBadge from '@/components/EstadoBadge.vue'
 import OrdenProgreso from '@/components/OrdenProgreso.vue'
+import PagosOrden from '@/components/PagosOrden.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -285,6 +286,8 @@ onMounted(async () => {
 
       <p class="total">Total: {{ formatearPesos(orden.total) }}</p>
     </div>
+
+    <PagosOrden :orden-id="orden.id" :estado="orden.estado" :total-orden="orden.total" />
 
     <div class="card">
       <h2>Seguimiento de estados</h2>

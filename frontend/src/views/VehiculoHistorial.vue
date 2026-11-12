@@ -46,6 +46,12 @@ function totalOrden(orden) {
         <RouterLink :to="`/ordenes/nueva?vehiculoId=${vehiculo.id}`" class="btn btn-primario">
           + Nueva orden
         </RouterLink>
+        <RouterLink
+          :to="`/presupuestos/nuevo?vehiculoId=${vehiculo.id}`"
+          class="btn btn-secundario"
+        >
+          + Presupuesto
+        </RouterLink>
         <h1>
           <span class="patente">{{ vehiculo.patente }}</span>
           {{ vehiculo.marca }} {{ vehiculo.modelo }}

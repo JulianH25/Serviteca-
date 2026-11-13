@@ -7,13 +7,11 @@ import portalRouter from './routes/portal.js'
 import serviciosRouter from './routes/servicios.js'
 import categoriasRouter from './routes/categorias.js'
 import productosRouter from './routes/productos.js'
+import ordenesRouter from './routes/ordenes.js'
+import presupuestosRouter from './routes/presupuestos.js'
+import pagosRouter from './routes/pagos.js'
 import { identificar, verificarToken } from './middleware/auth.js'
 import { prisma } from './lib/prisma.js'
-import ordenesRouter from './routes/ordenes.js'
-import 'dotenv/config'
-import fs from 'fs'
-console.log('existe .env:', fs.existsSync('.env'))
-console.log('contenido:', JSON.stringify(fs.readFileSync('.env', 'utf8').slice(0, 80)))
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -57,6 +55,8 @@ app.use('/api/portal', portalRouter)
 app.use('/api/servicios', serviciosRouter)
 app.use('/api/categorias', categoriasRouter)
 app.use('/api/productos', productosRouter)
+app.use('/api/presupuestos', presupuestosRouter)
+app.use('/api/pagos', pagosRouter)
 
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }))
 

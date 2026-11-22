@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (claves y contraseñas)
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+
+# Prisma
+backend/generated/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor y sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

@@ -12,7 +12,9 @@ import presupuestosRouter from './routes/presupuestos.js'
 import pagosRouter from './routes/pagos.js'
 import { identificar, verificarToken } from './middleware/auth.js'
 import { prisma } from './lib/prisma.js'
+
 import comprobantesRouter from './routes/comprobantes.js'
+
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -58,7 +60,9 @@ app.use('/api/categorias', categoriasRouter)
 app.use('/api/productos', productosRouter)
 app.use('/api/presupuestos', presupuestosRouter)
 app.use('/api/pagos', pagosRouter)
+
 app.use('/api/comprobantes', comprobantesRouter)
+
 
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }))
 

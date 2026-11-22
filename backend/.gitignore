@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (contienen claves secretas - NUNCA subir)
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/migrations/dev.db*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / Sistema operativo
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Build / output (si en algún momento compilan el backend)
+dist/
+build/
+
+# Archivos temporales
+*.tmp
+.cache/

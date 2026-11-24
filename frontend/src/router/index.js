@@ -36,6 +36,7 @@ import Dueno from '@/views/Dueno.vue'
 import DuenoPagos from '@/views/DuenoPagos.vue'
 import DuenoPersonal from '@/views/DuenoPersonal.vue'
 import DuenoClientes from '@/views/DuenoClientes.vue'
+import DuenoReportes from '@/views/DuenoReportes.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -69,6 +70,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'dueno', component: Dueno },
         { path: 'pagos', name: 'dueno-pagos', component: DuenoPagos },
+        { path: 'reportes', name: 'dueno-reportes', component: DuenoReportes },
         { path: 'personal', name: 'dueno-personal', component: DuenoPersonal },
         { path: 'clientes', name: 'dueno-clientes', component: DuenoClientes }
       ]

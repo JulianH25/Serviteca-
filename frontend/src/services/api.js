@@ -135,5 +135,8 @@ export const reportesApi = {
   resumen: (params) => api.get('/reportes/resumen', { params }).then(datos),
   servicios: (params) => api.get('/reportes/servicios', { params }).then(datos),
   productos: (params) => api.get('/reportes/productos', { params }).then(datos),
-  clientes: (params) => api.get('/reportes/clientes', { params }).then(datos)
+  clientes: (params) => api.get('/reportes/clientes', { params }).then(datos),
+  ganancias: (params) => api.get('/reportes/ganancias', { params }).then(datos),
+  rotacion: (params) => api.get('/reportes/rotacion', { params }).then(datos),
+  general: (params) => api.get('/reportes/general', { params }).then(datos)
 }

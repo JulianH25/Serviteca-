@@ -9,9 +9,12 @@ const fecha = (f) => (f ? new Date(f).toLocaleDateString('es-CL') : '—')
 
 const TABS = [
   { id: 'resumen', texto: 'Resumen' },
+  { id: 'ganancias', texto: 'Ganancias' },
   { id: 'servicios', texto: 'Servicios' },
   { id: 'productos', texto: 'Productos' },
-  { id: 'clientes', texto: 'Clientes' }
+  { id: 'rotacion', texto: 'Rotación' },
+  { id: 'clientes', texto: 'Clientes' },
+  { id: 'general', texto: 'General' }
 ]
 const RANGOS = [
   { id: 'mes', texto: 'Este mes' },
@@ -63,7 +66,7 @@ async function cargar() {
 }
 watch([tab, desde, hasta], cargar, { immediate: true })
 
-// ---------- Resumen ----------
+// ---------- Helpers de presentación ----------
 const maxVentas = () => Math.max(1, ...(datos.value?.serie?.map((p) => p.ventas) ?? [1]))
 const etiqueta = (p) => (p.length === 7 ? p : p.slice(5))
 function delta(v) {
@@ -75,6 +78,21 @@ function delta(v) {
   }
 }
 const METODOS = { EFECTIVO: 'Efectivo', DEBITO: 'Débito', CREDITO: 'Crédito', TRANSFERENCIA: 'Transferencia' }
+const CLASES = {
+  ALTA: 'Alta',
+  MEDIA: 'Media',
+  BAJA: 'Baja',
+  SIN_MOVIMIENTO: 'Sin movimiento',
+  AGOTADO: 'Agotado'
+}
+const ESTADOS_ORDEN = {
+  RECEPCIONADO: 'Recepcionado',
+  EN_PROCESO: 'En proceso',
+  TERMINADO: 'Terminado',
+  ENTREGADO: 'Entregado',
+  CANCELADO: 'Cancelado'
+}
+const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`)
 
 // ---------- Exportar CSV ----------
 function descargarCsv(nombre, columnas, filas) {
@@ -94,14 +112,27 @@ function descargarCsv(nombre, columnas, filas) {
 function exportar() {
   const d = datos.value
   if (!d) return
-  if (tab.value === 'resumen') {
+  const t = tab.value
+
+  if (t === 'resumen') {
     descargarCsv('resumen', [
       { titulo: 'Período', campo: 'periodo' },
       { titulo: 'Ventas', campo: 'ventas' },
       { titulo: 'Ganancia', campo: 'ganancia' },
       { titulo: 'Cobrado', campo: 'cobrado' }
     ], d.serie)
-  } else if (tab.value === 'servicios') {
+  } else if (t === 'ganancias') {
+    descargarCsv('ganancias', [
+      { titulo: 'Orden', campo: 'id' },
+      { titulo: 'Fecha', campo: 'fecha' },
+      { titulo: 'Patente', campo: 'patente' },
+      { titulo: 'Cliente', campo: 'cliente' },
+      { titulo: 'Total', campo: 'total' },
+      { titulo: 'Costo', campo: 'costo' },
+      { titulo: 'Ganancia', campo: 'ganancia' },
+      { titulo: 'Margen %', campo: 'margen' }
+    ], d.detalle)
+  } else if (t === 'servicios') {
     descargarCsv('servicios', [
       { titulo: 'Servicio', campo: 'nombre' },
       { titulo: 'Cantidad', campo: 'cantidad' },
@@ -110,7 +141,7 @@ function exportar() {
       { titulo: 'Precio promedio', campo: 'precioPromedio' },
       { titulo: '% del total', campo: 'participacion' }
     ], d.ranking)
-  } else if (tab.value === 'productos') {
+  } else if (t === 'productos') {
     descargarCsv('productos', [
       { titulo: 'Producto', campo: 'nombre' },
       { titulo: 'Categoría', campo: 'categoria' },
@@ -120,7 +151,20 @@ function exportar() {
       { titulo: 'Ganancia', campo: 'ganancia' },
       { titulo: 'Margen %', campo: 'margen' }
     ], d.ranking)
-  } else {
+  } else if (t === 'rotacion') {
+    descargarCsv('rotacion', [
+      { titulo: 'Producto', campo: 'nombre' },
+      { titulo: 'Categoría', campo: 'categoria' },
+      { titulo: 'Stock actual', campo: 'stockActual' },
+      { titulo: 'Stock mínimo', campo: 'stockMinimo' },
+      { titulo: 'Vendidas', campo: 'vendidas' },
+      { titulo: 'Rotación', campo: 'rotacion' },
+      { titulo: 'Cobertura (días)', campo: 'cobertura' },
+      { titulo: 'Clasificación', campo: 'clase' },
+      { titulo: 'Reponer', campo: 'reponer' },
+      { titulo: 'Valor stock', campo: 'valorStock' }
+    ], d.productos)
+  } else if (t === 'clientes') {
     descargarCsv('clientes', [
       { titulo: 'Cliente', campo: 'nombre' },
       { titulo: 'RUT', campo: 'rut' },
@@ -131,6 +175,13 @@ function exportar() {
       { titulo: 'Saldo', campo: 'saldo' },
       { titulo: 'Última visita', campo: 'ultimaVisita' }
     ], d.ranking)
+  } else if (t === 'general') {
+    descargarCsv('general_personal', [
+      { titulo: 'Trabajador', campo: 'nombre' },
+      { titulo: 'Órdenes', campo: 'ordenes' },
+      { titulo: 'Entregadas', campo: 'entregadas' },
+      { titulo: 'Ventas', campo: 'ventas' }
+    ], d.personal)
   }
 }
 </script>
@@ -236,6 +287,124 @@ function exportar() {
                 <td>{{ METODOS[m] ?? m }}</td><td class="num">{{ clp(monto) }}</td>
               </tr>
               <tr v-if="!Object.keys(datos.porMetodo).length"><td class="d-vacio">Sin pagos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ===== GANANCIAS ===== -->
+    <template v-if="datos && tab === 'ganancias'">
+      <div class="d-kpis">
+        <div class="d-kpi">
+          <span>Ventas (IVA incl.)</span><strong>{{ clp(datos.kpis.ventas) }}</strong>
+          <small :class="delta(datos.variacion.ventas).clase">{{ delta(datos.variacion.ventas).texto }}</small>
+        </div>
+        <div class="d-kpi">
+          <span>Costo de productos</span><strong>{{ clp(datos.kpis.costoProductos) }}</strong>
+        </div>
+        <div class="d-kpi">
+          <span>Ganancia bruta</span><strong>{{ clp(datos.kpis.ganancia) }}</strong>
+          <small :class="delta(datos.variacion.ganancia).clase">{{ delta(datos.variacion.ganancia).texto }}</small>
+        </div>
+        <div class="d-kpi">
+          <span>Ganancia neta de IVA</span><strong>{{ clp(datos.kpis.gananciaNeta) }}</strong>
+          <small :class="delta(datos.variacion.gananciaNeta).clase">{{ delta(datos.variacion.gananciaNeta).texto }}</small>
+        </div>
+        <div class="d-kpi">
+          <span>Margen</span><strong>{{ datos.kpis.margen }}%</strong>
+          <small :class="delta(datos.variacion.margen).clase">{{ delta(datos.variacion.margen).texto }}</small>
+        </div>
+        <div class="d-kpi warn">
+          <span>Por cobrar</span><strong>{{ clp(datos.kpis.porCobrar) }}</strong>
+          <small>Cobrado en el período: {{ clp(datos.kpis.cobrado) }}</small>
+        </div>
+      </div>
+
+      <div class="d-dos">
+        <div class="d-card">
+          <h2>Ganancia por {{ datos.periodo.agrupacion === 'mes' ? 'mes' : 'día' }}</h2>
+          <p v-if="!datos.serie.length" class="d-vacio">Sin movimiento en el período</p>
+          <div class="r-barras">
+            <div
+              v-for="p in datos.serie"
+              :key="p.periodo"
+              class="r-barra"
+              :title="`${p.periodo}: ventas ${clp(p.ventas)} · costo ${clp(p.costo)} · ganancia ${clp(p.ganancia)} (${p.margen}%)`"
+            >
+              <div class="r-col" :style="{ height: (p.ventas / maxVentas()) * 100 + '%' }">
+                <div
+                  class="r-gan"
+                  :style="{ height: p.ventas ? Math.max(0, p.ganancia / p.ventas) * 100 + '%' : '0%' }"
+                ></div>
+              </div>
+              <small>{{ etiqueta(p.periodo) }}</small>
+            </div>
+          </div>
+          <small class="r-leyenda"><i class="r-c1"></i> Ventas <i class="r-c2"></i> Ganancia</small>
+        </div>
+
+        <div class="d-card">
+          <h2>De dónde viene la ganancia</h2>
+          <table class="d-tabla">
+            <thead>
+              <tr><th></th><th class="num">Ventas</th><th class="num">Costo</th><th class="num">Ganancia</th><th class="num">Margen</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(f, k) in datos.fuentes" :key="k">
+                <td>{{ k === 'servicios' ? 'Servicios' : 'Productos' }}</td>
+                <td class="num">{{ clp(f.ventas) }}</td>
+                <td class="num">{{ clp(f.costo) }}</td>
+                <td class="num d-pos">{{ clp(f.ganancia) }}</td>
+                <td class="num">{{ f.margen }}%</td>
+              </tr>
+            </tbody>
+          </table>
+          <small class="r-nota">Los servicios no tienen costo registrado, por eso se consideran 100% ganancia (sin descontar mano de obra).</small>
+          <h2 style="margin-top: 1rem">IVA</h2>
+          <table class="d-tabla">
+            <tbody>
+              <tr><td>Ventas netas</td><td class="num">{{ clp(datos.kpis.ventasNetas) }}</td></tr>
+              <tr><td>IVA contenido</td><td class="num">{{ clp(datos.kpis.iva) }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="d-dos">
+        <div class="d-card d-scroll">
+          <h2>Órdenes más rentables</h2>
+          <table class="d-tabla">
+            <thead>
+              <tr><th>Orden</th><th>Vehículo</th><th class="num">Total</th><th class="num">Ganancia</th><th class="num">Margen</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in datos.topOrdenes" :key="o.id">
+                <td>#{{ o.id }}</td>
+                <td>{{ o.patente ?? '—' }}<br /><small>{{ o.cliente }}</small></td>
+                <td class="num">{{ clp(o.total) }}</td>
+                <td class="num d-pos">{{ clp(o.ganancia) }}</td>
+                <td class="num">{{ o.margen }}%</td>
+              </tr>
+              <tr v-if="!datos.topOrdenes.length"><td colspan="5" class="d-vacio">Sin órdenes</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-card d-scroll">
+          <h2>Órdenes con menor margen (con productos)</h2>
+          <table class="d-tabla">
+            <thead>
+              <tr><th>Orden</th><th>Vehículo</th><th class="num">Total</th><th class="num">Costo</th><th class="num">Margen</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in datos.margenBajo" :key="o.id">
+                <td>#{{ o.id }}</td>
+                <td>{{ o.patente ?? '—' }}</td>
+                <td class="num">{{ clp(o.total) }}</td>
+                <td class="num">{{ clp(o.costo) }}</td>
+                <td class="num d-neg">{{ o.margen }}%</td>
+              </tr>
+              <tr v-if="!datos.margenBajo.length"><td colspan="5" class="d-vacio">Sin datos</td></tr>
             </tbody>
           </table>
         </div>
@@ -362,6 +531,69 @@ function exportar() {
       </div>
     </template>
 
+    <!-- ===== ROTACIÓN ===== -->
+    <template v-if="datos && tab === 'rotacion'">
+      <div class="d-kpis">
+        <div class="d-kpi">
+          <span>Valor del inventario (costo)</span><strong>{{ clp(datos.resumen.valorInventario) }}</strong>
+          <small>{{ datos.resumen.productos }} productos activos</small>
+        </div>
+        <div class="d-kpi">
+          <span>Rotación del inventario</span><strong>{{ datos.resumen.rotacionGlobal }}x</strong>
+          <small>costo vendido / valor del stock en {{ datos.dias }} días</small>
+        </div>
+        <div class="d-kpi">
+          <span>Rotación promedio</span><strong>{{ datos.resumen.rotacionPromedio }}x</strong>
+          <small>de productos con ventas</small>
+        </div>
+        <div class="d-kpi warn">
+          <span>Capital sin rotación</span><strong>{{ clp(datos.resumen.capitalInmovilizado) }}</strong>
+          <small>{{ datos.resumen.conteo.SIN_MOVIMIENTO }} productos sin ventas</small>
+        </div>
+        <div class="d-kpi warn">
+          <span>Por reponer</span><strong>{{ datos.resumen.porReponer }}</strong>
+          <small>{{ datos.resumen.conteo.AGOTADO }} agotados</small>
+        </div>
+      </div>
+
+      <div class="d-card">
+        <h2>Clasificación</h2>
+        <div class="d-chips">
+          <span v-for="(n, c) in datos.resumen.conteo" :key="c" class="d-chip">
+            <span class="r-cl" :class="`r-cl-${c}`">{{ CLASES[c] }}</span> {{ n }}
+          </span>
+        </div>
+        <small class="r-nota">Alta: stock para 30 días o menos · Media: 31-90 días · Baja: más de 90 días. Rotación = unidades vendidas / stock promedio del período.</small>
+      </div>
+
+      <div class="d-card d-scroll">
+        <h2>Detalle por producto</h2>
+        <table class="d-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th><th>Categoría</th><th class="num">Stock</th><th class="num">Vendidas</th>
+              <th class="num">Rotación</th><th class="num">Cobertura</th><th>Clase</th>
+              <th class="num">Reponer</th><th class="num">Valor stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in datos.productos" :key="p.id">
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.categoria }}</td>
+              <td class="num" :class="{ 'd-neg': p.stockActual <= p.stockMinimo }">{{ p.stockActual }}</td>
+              <td class="num">{{ p.vendidas }}</td>
+              <td class="num">{{ p.rotacion }}x</td>
+              <td class="num">{{ p.cobertura === null ? '—' : p.cobertura + ' d' }}</td>
+              <td><span class="r-cl" :class="`r-cl-${p.clase}`">{{ CLASES[p.clase] }}</span></td>
+              <td class="num"><b v-if="p.reponer">{{ p.reponer }}</b><span v-else>—</span></td>
+              <td class="num">{{ clp(p.valorStock) }}</td>
+            </tr>
+            <tr v-if="!datos.productos.length"><td colspan="9" class="d-vacio">Sin productos</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
     <!-- ===== CLIENTES ===== -->
     <template v-if="datos && tab === 'clientes'">
       <div class="d-kpis">
@@ -396,6 +628,88 @@ function exportar() {
         </table>
       </div>
     </template>
+
+    <!-- ===== GENERAL ===== -->
+    <template v-if="datos && tab === 'general'">
+      <div class="d-kpis">
+        <div class="d-kpi"><span>Órdenes</span><strong>{{ datos.ordenes.total }}</strong><small>{{ datos.ordenes.entregadas }} entregadas</small></div>
+        <div class="d-kpi">
+          <span>Tiempo promedio de entrega</span>
+          <strong>{{ datos.ordenes.tiempoPromedioHoras === null ? '—' : datos.ordenes.tiempoPromedioHoras + ' h' }}</strong>
+        </div>
+        <div class="d-kpi"><span>Cancelaciones</span><strong>{{ pct(datos.ordenes.tasaCancelacion) }}</strong></div>
+        <div class="d-kpi"><span>Cobrado</span><strong>{{ clp(datos.pagos.cobrado) }}</strong><small>{{ datos.pagos.cantidad }} pagos</small></div>
+        <div class="d-kpi"><span>Clientes nuevos</span><strong>{{ datos.clientesNuevos }}</strong></div>
+        <div class="d-kpi">
+          <span>Aprobación de presupuestos</span><strong>{{ pct(datos.presupuestos.tasaAprobacion) }}</strong>
+          <small>{{ datos.presupuestos.total }} emitidos · {{ clp(datos.presupuestos.montoCotizado) }}</small>
+        </div>
+      </div>
+
+      <div class="d-dos">
+        <div class="d-card">
+          <h2>Órdenes por estado</h2>
+          <table class="d-tabla">
+            <tbody>
+              <tr v-for="(e, k) in ESTADOS_ORDEN" :key="k">
+                <td>{{ e }}</td><td class="num">{{ datos.ordenes.porEstado[k] ?? 0 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-card">
+          <h2>Pagos por método</h2>
+          <table class="d-tabla">
+            <tbody>
+              <tr v-for="m in datos.pagos.porMetodo" :key="m.metodo">
+                <td>{{ METODOS[m.metodo] ?? m.metodo }} <small>({{ m.cantidad }})</small></td>
+                <td class="num">{{ clp(m.monto) }}</td>
+              </tr>
+              <tr v-if="!datos.pagos.porMetodo.length"><td class="d-vacio">Sin pagos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-card">
+          <h2>Presupuestos</h2>
+          <table class="d-tabla">
+            <tbody>
+              <tr v-for="(n, e) in datos.presupuestos.porEstado" :key="e"><td>{{ e }}</td><td class="num">{{ n }}</td></tr>
+              <tr class="total"><td>Convertidos en orden</td><td class="num">{{ pct(datos.presupuestos.tasaConversion) }}</td></tr>
+              <tr v-if="!datos.presupuestos.total"><td class="d-vacio">Sin presupuestos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-card">
+          <h2>Inventario</h2>
+          <table class="d-tabla">
+            <tbody>
+              <tr><td>Valor a costo</td><td class="num">{{ clp(datos.inventario.valorCosto) }}</td></tr>
+              <tr><td>Valor a precio de venta</td><td class="num">{{ clp(datos.inventario.valorVenta) }}</td></tr>
+              <tr><td>Con stock bajo</td><td class="num">{{ datos.inventario.stockBajo }}</td></tr>
+              <tr><td>Agotados</td><td class="num">{{ datos.inventario.agotados }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="d-card d-scroll">
+        <h2>Rendimiento del personal</h2>
+        <table class="d-tabla">
+          <thead>
+            <tr><th>Trabajador</th><th class="num">Órdenes</th><th class="num">Entregadas</th><th class="num">Ventas</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in datos.personal" :key="p.id">
+              <td>{{ p.nombre }}</td>
+              <td class="num">{{ p.ordenes }}</td>
+              <td class="num">{{ p.entregadas }}</td>
+              <td class="num">{{ clp(p.ventas) }}</td>
+            </tr>
+            <tr v-if="!datos.personal.length"><td colspan="4" class="d-vacio">Sin órdenes en el período</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -422,4 +736,12 @@ function exportar() {
 .r-c2 { background: #2563eb; }
 .r-prog { width: 120px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
 .r-prog div { height: 100%; background: #2563eb; }
+.r-nota { display: block; margin-top: 0.5rem; color: #6b7280; }
+.r-cl { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.r-cl-ALTA { background: #dcfce7; color: #166534; }
+.r-cl-MEDIA { background: #fef3c7; color: #92400e; }
+.r-cl-BAJA { background: #ffedd5; color: #9a3412; }
+.r-cl-SIN_MOVIMIENTO { background: #fee2e2; color: #991b1b; }
+.r-cl-AGOTADO { background: #e5e7eb; color: #374151; }
+.total td { font-weight: 700; border-top: 2px solid #e5e7eb; }
 </style>

@@ -169,16 +169,48 @@ router.delete('/:id', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    const tieneHistorial = cliente.vehiculos.some(
-      (v) => v._count.ordenesTrabajo > 0 || v._count.presupuestos > 0
-    )
-    if (tieneHistorial) {
+    const ordenes = cliente.vehiculos.reduce((total, v) => total + v._count.ordenesTrabajo, 0)
+    const presupuestos = cliente.vehiculos.reduce((total, v) => total + v._count.presupuestos, 0)
+    const forzar = String(req.query.force).toLowerCase() === 'true'
+    if ((ordenes > 0 || presupuestos > 0) && !forzar) {
       return res.status(409).json({
-        error: 'No se puede eliminar el cliente porque alguno de sus vehiculos tiene ordenes o presupuestos asociados'
+        error: 'El cliente tiene historial asociado',
+        codigo: 'CLIENTE_CON_HISTORIAL',
+        ordenes,
+        presupuestos,
+        requiereConfirmacion: true
       })
     }
 
     await prisma.$transaction(async (tx) => {
+      const vehiculoIds = cliente.vehiculos.map((v) => v.id)
+      const ordenesCliente = await tx.ordenTrabajo.findMany({
+        where: { vehiculoId: { in: vehiculoIds } },
+        select: { id: true }
+      })
+      const ordenIds = ordenesCliente.map((o) => o.id)
+      const presupuestosCliente = await tx.presupuesto.findMany({
+        where: { vehiculoId: { in: vehiculoIds } },
+        select: { id: true }
+      })
+      const presupuestoIds = presupuestosCliente.map((p) => p.id)
+
+      if (presupuestoIds.length) {
+        await tx.presupuestoDetalle.deleteMany({ where: { presupuestoId: { in: presupuestoIds } } })
+        await tx.presupuesto.deleteMany({ where: { id: { in: presupuestoIds } } })
+      }
+      if (ordenIds.length) {
+        const pagos = await tx.pago.findMany({ where: { ordenId: { in: ordenIds } }, select: { id: true } })
+        const pagoIds = pagos.map((p) => p.id)
+        if (pagoIds.length) await tx.comprobante.deleteMany({ where: { pagoId: { in: pagoIds } } })
+        await tx.pago.deleteMany({ where: { id: { in: pagoIds } } })
+        await tx.movimientoInventario.deleteMany({ where: { ordenId: { in: ordenIds } } })
+        await tx.ordenEstadoHistorial.deleteMany({ where: { ordenId: { in: ordenIds } } })
+        await tx.notificacion.deleteMany({ where: { ordenId: { in: ordenIds } } })
+        await tx.ordenProducto.deleteMany({ where: { ordenId: { in: ordenIds } } })
+        await tx.ordenServicio.deleteMany({ where: { ordenId: { in: ordenIds } } })
+        await tx.ordenTrabajo.deleteMany({ where: { id: { in: ordenIds } } })
+      }
       if (cliente.rut) {
         await tx.perfil.updateMany({ where: { clienteRut: cliente.rut }, data: { clienteRut: null } })
       }

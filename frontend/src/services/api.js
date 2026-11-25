@@ -51,7 +51,7 @@ export const clientesApi = {
   obtener: (id) => api.get(`/clientes/${id}`).then(datos),
   porRut: (rut) => api.get(`/clientes/rut/${encodeURIComponent(rut)}`).then(datos),
   crear: (d) => api.post('/clientes', d).then(datos),
-  eliminar: (id) => api.delete(`/clientes/${id}`).then(datos),
+  eliminar: (id, force = false) => api.delete(`/clientes/${id}`, { params: force ? { force: true } : {} }).then(datos),
   validar: (id, rut) => api.patch(`/clientes/${id}/validar`, { rut }).then(datos)
 }
 
@@ -98,7 +98,8 @@ export const ordenesApi = {
 
 // ---------- Portal del cliente ----------
 export const portalApi = {
-  vincular: (d) => api.post('/portal/vincular', d).then(datos),
+  solicitarCodigo: (d) => api.post('/portal/vincular/codigo', d).then(datos),
+  verificarCodigo: (d) => api.post('/portal/vincular/verificar', d).then(datos),
   cliente: () => api.get('/portal/cliente').then(datos),
   vehiculos: () => api.get('/portal/vehiculos').then(datos),
   vehiculo: (id) => api.get(`/portal/vehiculos/${id}`).then(datos),

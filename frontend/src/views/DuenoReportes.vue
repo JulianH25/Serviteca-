@@ -417,7 +417,7 @@ function exportar() {
         <div class="d-kpi"><span>Facturado en servicios</span><strong>{{ clp(datos.total) }}</strong></div>
         <div class="d-kpi"><span>Servicios realizados</span><strong>{{ datos.unidades }}</strong></div>
         <div class="d-kpi">
-          <span>Más vendido</span><strong>{{ datos.ranking[0]?.nombre ?? '—' }}</strong>
+          <span>Más realizado</span><strong>{{ datos.ranking[0]?.nombre ?? '—' }}</strong>
         </div>
       </div>
       <div class="d-card d-scroll">
@@ -604,7 +604,7 @@ function exportar() {
         <div class="d-kpi warn"><span>Saldo pendiente</span><strong>{{ clp(datos.resumen.saldoPendiente) }}</strong></div>
       </div>
       <div class="d-card d-scroll">
-        <h2>Mejores clientes</h2>
+        <h2>Clientes frecuentes</h2>
         <table class="d-tabla">
           <thead>
             <tr>

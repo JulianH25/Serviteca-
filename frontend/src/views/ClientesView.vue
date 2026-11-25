@@ -28,6 +28,23 @@ async function eliminarCliente(cliente) {
     await clientesApi.eliminar(cliente.id)
     await cargar()
   } catch (e) {
+    if (e.response?.status === 409 && e.response.data?.codigo === 'CLIENTE_CON_HISTORIAL') {
+      const ordenes = e.response.data.ordenes ?? 0
+      const presupuestos = e.response.data.presupuestos ?? 0
+      const continuar = window.confirm(
+        `Este cliente tiene ${ordenes} orden(es) y ${presupuestos} presupuesto(s) asociados.\n\n` +
+          'Si continúas, se eliminarán también todo ese historial, pagos, comprobantes y vehículos. Esta acción no se puede deshacer.\n\n¿Deseas continuar?'
+      )
+      if (!continuar) return
+      try {
+        await clientesApi.eliminar(cliente.id, true)
+        await cargar()
+        return
+      } catch (errorForzado) {
+        error.value = mensajeError(errorForzado, 'No se pudo eliminar el cliente')
+        return
+      }
+    }
     error.value = mensajeError(e, 'No se pudo eliminar el cliente')
   }
 }

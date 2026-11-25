@@ -36,6 +36,21 @@ model Perfil {
 // SPRINT 1: clientes, vehiculos
 // =====================================================================
 
+model VerificacionPortal {
+  id         String   @id
+  clienteRut String   @map("cliente_rut") @db.VarChar(12)
+  email      String   @db.VarChar(120)
+  codigoHash String   @map("codigo_hash") @db.VarChar(128)
+  salt       String   @db.VarChar(64)
+  intentos   Int      @default(0)
+  expiraEn   DateTime @map("expira_en")
+  creadoEn   DateTime @default(now()) @map("creado_en")
+
+  @@index([expiraEn], map: "idx_verificacion_portal_expira")
+  @@map("verificaciones_portal")
+  @@schema("public")
+}
+
 model Cliente {
   id                Int      @id @default(autoincrement())
   nombre            String   @db.VarChar(120)

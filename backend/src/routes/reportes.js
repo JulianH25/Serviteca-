@@ -205,7 +205,8 @@ router.get('/servicios', verificarDueno, conRango, async (req, res) => {
         participacion: total ? Math.round((r.monto / total) * 1000) / 10 : 0,
         variacion: variacion(r.monto, ant.get(r.id)?.monto ?? 0)
       }))
-      .sort((a, b) => b.monto - a.monto)
+      // El ranking responde a "más realizados": primero cantidad y luego monto.
+      .sort((a, b) => b.cantidad - a.cantidad || b.monto - a.monto)
 
     res.json({
       total,
@@ -348,7 +349,9 @@ router.get('/clientes', verificarDueno, conRango, async (req, res) => {
 
     const ranking = [...m.values()]
       .map((r) => ({ ...r, vehiculos: r.vehiculos.size }))
-      .sort((a, b) => b.total - a.total)
+      // El ranking responde a "clientes frecuentes": primero número de órdenes
+      // y luego gasto total como criterio de desempate.
+      .sort((a, b) => b.ordenes - a.ordenes || b.total - a.total)
 
     const total = ranking.reduce((s, r) => s + r.total, 0)
     const recurrentes = ranking.filter((r) => r.ordenes >= 2).length

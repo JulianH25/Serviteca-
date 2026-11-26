@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { verificarToken, verificarDueno } from '../middleware/auth.js'
+import { verificarToken } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 
 const router = Router()
@@ -16,17 +16,7 @@ function formatearRut(rut) {
 
 function rutValido(rut) {
   const limpio = limpiarRut(rut)
-  if (!/^\d{7,8}[0-9K]$/.test(limpio)) return false
-  const cuerpo = limpio.slice(0, -1)
-  let suma = 0
-  let multiplo = 2
-  for (let i = cuerpo.length - 1; i >= 0; i--) {
-    suma += Number(cuerpo[i]) * multiplo
-    multiplo = multiplo === 7 ? 2 : multiplo + 1
-  }
-  const resto = 11 - (suma % 11)
-  const esperado = resto === 11 ? '0' : resto === 10 ? 'K' : String(resto)
-  return limpio.slice(-1) === esperado
+  return /^\d{7,8}[0-9K]$/.test(limpio)
 }
 
 function telefonoValido(tel) {
@@ -75,13 +65,14 @@ router.get('/rut/:rut', verificarToken, async (req, res) => {
   try {
     const cliente = await prisma.cliente.findUnique({
       where: { rut },
-      select: { id: true, nombre: true, telefono: true, rut: true, estadoValidacion: true }
+      select: { id: true, nombre: true, telefono: true, rut: true, registradoPorId: true }
     })
     if (!cliente) return res.status(404).json({ error: 'No existe un cliente con ese RUT' })
-    if (req.perfil?.rol !== 'dueno' && cliente.registradoPorId !== req.perfil.id) {
+    const { registradoPorId, ...datosCliente } = cliente
+    if (req.perfil?.rol !== 'dueno' && registradoPorId !== req.perfil.id) {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
-    res.json(ocultarDatosMecanico(cliente, req.perfil?.rol === 'dueno'))
+    res.json(ocultarDatosMecanico(datosCliente, req.perfil?.rol === 'dueno'))
   } catch (e) {
     res.status(500).json({ error: 'No se pudo buscar el cliente' })
   }
@@ -117,7 +108,6 @@ router.post('/', verificarToken, async (req, res) => {
         rut: rut ? formatearRut(rut) : null,
         telefono: String(telefono).trim(),
         correo: correo?.trim() || null,
-        estadoValidacion: req.perfil?.rol === 'dueno' ? 'VALIDADO' : 'PENDIENTE',
         registradoPorId: req.perfil?.rol === 'dueno' ? null : req.perfil.id
       }
     })
@@ -125,23 +115,6 @@ router.post('/', verificarToken, async (req, res) => {
   } catch (e) {
     if (e.code === 'P2002') return res.status(400).json({ error: 'Ya existe un cliente con ese RUT' })
     res.status(500).json({ error: 'No se pudo registrar el cliente' })
-  }
-})
-
-router.patch('/:id/validar', verificarDueno, async (req, res) => {
-  const rut = formatearRut(req.body.rut)
-  if (!rutValido(rut)) return res.status(400).json({ error: 'RUT invalido' })
-  try {
-    const cliente = await prisma.cliente.update({
-      where: { id: Number(req.params.id) },
-      data: { rut, estadoValidacion: 'VALIDADO' }
-    })
-    await prisma.vehiculo.updateMany({ where: { clienteId: cliente.id }, data: { clienteRut: rut } })
-    res.json(cliente)
-  } catch (e) {
-    if (e.code === 'P2002') return res.status(400).json({ error: 'Ya existe un cliente con ese RUT' })
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Cliente no encontrado' })
-    res.status(500).json({ error: 'No se pudo validar el cliente' })
   }
 })
 

@@ -2,7 +2,7 @@
 import { reactive, ref, computed } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { portalApi, mensajeError } from '@/services/api'
-import { formatearRut, rutValido, mensajeRut } from '@/utils/validaciones'
+import { formatearRut, rutValido } from '@/utils/validaciones'
 
 const { user, logout } = useAuth0()
 
@@ -14,7 +14,7 @@ const enviando = ref(false)
 const error = ref('')
 
 const errores = computed(() => ({
-  rut: !rutValido(form.rut) ? mensajeRut(form.rut) : '',
+  rut: !rutValido(form.rut) ? 'RUT invalido: usa 7 u 8 digitos y un ultimo numero o K' : '',
   email: !/^\S+@\S+\.\S+$/.test(form.email) ? 'Ingresa un correo válido' : '',
   codigo: !/^\d{6}$/.test(form.codigo) ? 'Ingresa el código de 6 dígitos' : ''
 }))

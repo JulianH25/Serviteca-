@@ -5,7 +5,6 @@ import { clientesApi, mensajeError } from '@/services/api'
 import {
   formatearRut,
   rutValido,
-  mensajeRut,
   telefonoValido,
   correoValido
 } from '@/utils/validaciones'
@@ -17,7 +16,7 @@ const enviando = ref(false)
 const error = ref('')
 
 const errores = computed(() => ({
-  rut: form.rut && !rutValido(form.rut) ? mensajeRut(form.rut) : '',
+  rut: form.rut && !rutValido(form.rut) ? 'RUT invalido: usa 7 u 8 digitos y un ultimo numero o K' : '',
   telefono: !telefonoValido(form.telefono) ? 'Ingresa un teléfono válido' : '',
   correo: !correoValido(form.correo) ? 'Correo inválido' : ''
 }))
@@ -65,7 +64,7 @@ async function guardar() {
       </div>
 
       <div class="campo">
-        <label for="rut">RUT (opcional; lo valida el dueño)</label>
+        <label for="rut">RUT (opcional)</label>
         <input
           id="rut"
           v-model="form.rut"

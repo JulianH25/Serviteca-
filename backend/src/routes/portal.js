@@ -28,47 +28,6 @@ function permitirIntento(id) {
 // Vincular la cuenta de Auth0 con un cliente registrado (solo RUT)
 router.post('/vincular', identificar, async (req, res) => {
   return res.status(410).json({ error: 'Usa el flujo de verificación por correo' })
-  if (req.perfil) return res.status(400).json({ error: 'Tu cuenta ya está registrada en el sistema' })
-  if (!permitirIntento(req.auth.id)) {
-    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' })
-  }
-
-  const rut = formatearRut(req.body.rut)
-  if (!rutValido(rut)) return res.status(400).json({ error: 'RUT inválido' })
-
-  try {
-    const cliente = await prisma.cliente.findUnique({ where: { rut } })
-    if (!cliente) {
-      return res.status(400).json({
-        error: 'No hay un cliente registrado con ese RUT. Pide a la serviteca que te registre.'
-      })
-    }
-
-    const yaVinculado = await prisma.perfil.findUnique({ where: { clienteRut: rut } })
-    if (yaVinculado) {
-      return res.status(400).json({
-        error: 'Este cliente ya tiene una cuenta. Inicia sesión con ella o contacta a la serviteca.'
-      })
-    }
-
-    await prisma.perfil.create({
-      data: {
-        id: req.auth.id,
-        email: req.auth.email,
-        nombre: cliente.nombre,
-        rol: 'cliente',
-        clienteRut: rut
-      }
-    })
-
-    intentos.delete(req.auth.id)
-    invalidarPerfil(req.auth.id)
-    res.status(201).json({ ok: true })
-  } catch (e) {
-    if (e.code === 'P2002') return res.status(400).json({ error: 'Este cliente ya tiene una cuenta vinculada' })
-    console.error(e)
-    res.status(500).json({ error: 'No se pudo vincular la cuenta' })
-  }
 })
 
 function normalizarCorreo(correo) {

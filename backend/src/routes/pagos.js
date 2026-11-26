@@ -8,6 +8,12 @@ const router = Router()
 const METODOS = ['EFECTIVO', 'DEBITO', 'CREDITO', 'TRANSFERENCIA']
 const TX = { timeout: 20000, maxWait: 10000 }
 
+function alcanceOrden(ordenId, perfil) {
+  return perfil?.rol === 'dueno'
+    ? { id: ordenId }
+    : { id: ordenId, vehiculo: { cliente: { registradoPorId: perfil.id } } }
+}
+
 const enteroPositivo = (v) => v !== '' && v != null && Number.isInteger(Number(v)) && Number(v) > 0
 
 const incluirPago = {
@@ -55,7 +61,7 @@ async function registrarPago(req, res, ordenId) {
 
   try {
     const pagoId = await prisma.$transaction(async (tx) => {
-      const orden = await tx.ordenTrabajo.findUnique({ where: { id: ordenId } })
+      const orden = await tx.ordenTrabajo.findFirst({ where: alcanceOrden(ordenId, req.perfil) })
       if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
       if (orden.estado === 'CANCELADO') throw new ErrorNegocio('No se puede pagar una orden cancelada')
 
@@ -89,7 +95,7 @@ router.get('/orden/:ordenId', verificarToken, async (req, res) => {
   const ordenId = Number(req.params.ordenId)
   if (!Number.isInteger(ordenId)) return res.status(404).json({ error: 'Orden no encontrada' })
   try {
-    const orden = await prisma.ordenTrabajo.findUnique({ where: { id: ordenId }, select: { id: true } })
+    const orden = await prisma.ordenTrabajo.findFirst({ where: alcanceOrden(ordenId, req.perfil), select: { id: true } })
     if (!orden) return res.status(404).json({ error: 'Orden no encontrada' })
     res.json(await resumenPagos(prisma, ordenId))
   } catch (e) {
@@ -98,8 +104,25 @@ router.get('/orden/:ordenId', verificarToken, async (req, res) => {
 })
 
 // Listar pagos: ?ordenId= (solo dueño)
-router.get('/', verificarDueno, async (req, res) => {
+router.get('/', verificarToken, async (req, res) => {
   const where = {}
+  if (req.perfil.rol !== 'dueno') {
+    where.orden = { vehiculo: { cliente: { registradoPorId: req.perfil.id } } }
+  }
+  if (req.query.desde || req.query.hasta) {
+    const fecha = {}
+    if (req.query.desde) {
+      const desde = new Date(`${req.query.desde}T00:00:00`)
+      if (Number.isNaN(desde.getTime())) return res.status(400).json({ error: 'Rango de fechas inválido' })
+      fecha.gte = desde
+    }
+    if (req.query.hasta) {
+      const hasta = new Date(`${req.query.hasta}T23:59:59.999`)
+      if (Number.isNaN(hasta.getTime())) return res.status(400).json({ error: 'Rango de fechas inválido' })
+      fecha.lte = hasta
+    }
+    where.fecha = fecha
+  }
   if (req.query.ordenId) {
     const ordenId = Number(req.query.ordenId)
     if (!Number.isInteger(ordenId)) return res.status(400).json({ error: 'Orden inválida' })
@@ -110,7 +133,20 @@ router.get('/', verificarDueno, async (req, res) => {
       where,
       orderBy: { fecha: 'desc' },
       take: 200,
-      include: incluirPago
+      include: {
+        ...incluirPago,
+        orden: {
+          select: {
+            id: true,
+            vehiculo: {
+              select: {
+                patente: true,
+                cliente: { select: { nombre: true } }
+              }
+            }
+          }
+        }
+      }
     })
     res.json(pagos)
   } catch (e) {

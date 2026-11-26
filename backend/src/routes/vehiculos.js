@@ -18,17 +18,7 @@ function formatearRut(rut) {
 
 function rutValido(rut) {
   const limpio = limpiarRut(rut)
-  if (!/^\d{7,8}[0-9K]$/.test(limpio)) return false
-  const cuerpo = limpio.slice(0, -1)
-  let suma = 0
-  let multiplo = 2
-  for (let i = cuerpo.length - 1; i >= 0; i--) {
-    suma += Number(cuerpo[i]) * multiplo
-    multiplo = multiplo === 7 ? 2 : multiplo + 1
-  }
-  const resto = 11 - (suma % 11)
-  const esperado = resto === 11 ? '0' : resto === 10 ? 'K' : String(resto)
-  return limpio.slice(-1) === esperado
+  return /^\d{7,8}[0-9K]$/.test(limpio)
 }
 
 router.get('/', verificarToken, async (req, res) => {
@@ -49,7 +39,7 @@ router.get('/', verificarToken, async (req, res) => {
           }
           : {})
       },
-      include: { cliente: { select: { id: true, nombre: true, telefono: true, rut: true, estadoValidacion: true } } },
+      include: { cliente: { select: { id: true, nombre: true, telefono: true, rut: true } } },
       orderBy: { creadoEn: 'desc' }
     })
     res.json(

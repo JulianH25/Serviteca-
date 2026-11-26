@@ -51,8 +51,7 @@ export const clientesApi = {
   obtener: (id) => api.get(`/clientes/${id}`).then(datos),
   porRut: (rut) => api.get(`/clientes/rut/${encodeURIComponent(rut)}`).then(datos),
   crear: (d) => api.post('/clientes', d).then(datos),
-  eliminar: (id, force = false) => api.delete(`/clientes/${id}`, { params: force ? { force: true } : {} }).then(datos),
-  validar: (id, rut) => api.patch(`/clientes/${id}/validar`, { rut }).then(datos)
+  eliminar: (id, force = false) => api.delete(`/clientes/${id}`, { params: force ? { force: true } : {} }).then(datos)
 }
 
 // ---------- Vehículos ----------
@@ -91,6 +90,7 @@ export const ordenesApi = {
   listar: (params = {}) => api.get('/ordenes', { params }).then(datos),
   obtener: (id) => api.get(`/ordenes/${id}`).then(datos),
   crear: (d) => api.post('/ordenes', d).then(datos),
+  eliminar: (id) => api.delete(`/ordenes/${id}`).then(datos),
   cambiarEstado: (id, estado) => api.patch(`/ordenes/${id}/estado`, { estado }).then(datos),
   agregarServicio: (id, d) => api.post(`/ordenes/${id}/servicios`, d).then(datos),
   agregarProducto: (id, d) => api.post(`/ordenes/${id}/productos`, d).then(datos)
@@ -116,6 +116,7 @@ export const presupuestosApi = {
   listar: (params = {}) => api.get('/presupuestos', { params }).then(datos),
   obtener: (id) => api.get(`/presupuestos/${id}`).then(datos),
   crear: (d) => api.post('/presupuestos', d).then(datos),
+  eliminar: (id) => api.delete(`/presupuestos/${id}`).then(datos),
   cambiarEstado: (id, estado) => api.patch(`/presupuestos/${id}/estado`, { estado }).then(datos),
   convertirEnOrden: (id) => api.post(`/presupuestos/${id}/orden`).then(datos)
 }

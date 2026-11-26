@@ -9,6 +9,12 @@ const ESTADOS = ['PENDIENTE', 'APROBADO', 'RECHAZADO', 'CONVERTIDO']
 const TX = { timeout: 20000, maxWait: 10000 }
 const IVA = 0.19
 
+function alcancePresupuesto(id, perfil) {
+  return perfil?.rol === 'dueno'
+    ? { id }
+    : { id, vehiculo: { cliente: { registradoPorId: perfil.id } } }
+}
+
 const enteroNoNegativo = (v) => v !== '' && v != null && Number.isInteger(Number(v)) && Number(v) >= 0
 
 const incluirDetalle = {
@@ -82,6 +88,7 @@ router.get('/', verificarToken, async (req, res) => {
   const estado = String(req.query.estado ?? '').toUpperCase()
   const q = String(req.query.q ?? '').trim()
   const where = {}
+  if (req.perfil.rol !== 'dueno') where.vehiculo = { cliente: { registradoPorId: req.perfil.id } }
 
   if (estado) {
     if (!ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' })
@@ -125,11 +132,30 @@ router.get('/:id', verificarToken, async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(404).json({ error: 'Presupuesto no encontrado' })
   try {
-    const presupuesto = await prisma.presupuesto.findUnique({ where: { id }, include: incluirDetalle })
+    const presupuesto = await prisma.presupuesto.findFirst({ where: alcancePresupuesto(id, req.perfil), include: incluirDetalle })
     if (!presupuesto) return res.status(404).json({ error: 'Presupuesto no encontrado' })
     res.json(presupuesto)
   } catch (e) {
     responderError(res, e, 'No se pudo obtener el presupuesto')
+  }
+})
+
+// Eliminar un presupuesto que todavía no fue convertido en orden
+router.delete('/:id', verificarToken, async (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Presupuesto no encontrado' })
+
+  try {
+    const presupuesto = await prisma.presupuesto.findFirst({ where: alcancePresupuesto(id, req.perfil), select: { id: true, ordenId: true } })
+    if (!presupuesto) return res.status(404).json({ error: 'Presupuesto no encontrado' })
+    if (presupuesto.ordenId) {
+      return res.status(409).json({ error: 'No se puede eliminar un presupuesto convertido en orden' })
+    }
+
+    await prisma.presupuesto.delete({ where: { id } })
+    res.json({ ok: true })
+  } catch (e) {
+    responderError(res, e, 'No se pudo eliminar el presupuesto')
   }
 })
 
@@ -149,7 +175,12 @@ router.post('/', verificarToken, async (req, res) => {
 
   try {
     const id = await prisma.$transaction(async (tx) => {
-      const vehiculo = await tx.vehiculo.findUnique({ where: { id: vehiculoId } })
+      const vehiculo = await tx.vehiculo.findFirst({
+        where: {
+          id: vehiculoId,
+          ...(req.perfil.rol === 'dueno' ? {} : { cliente: { registradoPorId: req.perfil.id } })
+        }
+      })
       if (!vehiculo) throw new ErrorNegocio('El vehículo no existe', 404)
 
       const lineas = await leerLineas(tx, req.body.detalle)
@@ -188,7 +219,7 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
   }
 
   try {
-    const actual = await prisma.presupuesto.findUnique({ where: { id } })
+    const actual = await prisma.presupuesto.findFirst({ where: alcancePresupuesto(id, req.perfil) })
     if (!actual) return res.status(404).json({ error: 'Presupuesto no encontrado' })
     if (actual.estado === 'CONVERTIDO') {
       return res.status(400).json({ error: 'El presupuesto ya fue convertido en orden y no se puede modificar' })
@@ -213,7 +244,10 @@ router.post('/:id/orden', verificarToken, async (req, res) => {
 
   try {
     const ordenId = await prisma.$transaction(async (tx) => {
-      const p = await tx.presupuesto.findUnique({ where: { id }, include: { detalle: true } })
+      const p = await tx.presupuesto.findFirst({
+        where: alcancePresupuesto(id, req.perfil),
+        include: { detalle: true }
+      })
       if (!p) throw new ErrorNegocio('Presupuesto no encontrado', 404)
       if (p.ordenId) throw new ErrorNegocio(`Este presupuesto ya fue convertido en la orden #${p.ordenId}`)
       if (p.estado !== 'APROBADO') throw new ErrorNegocio('Solo se pueden convertir presupuestos aprobados')

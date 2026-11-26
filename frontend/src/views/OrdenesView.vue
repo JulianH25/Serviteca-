@@ -13,6 +13,16 @@ const estado = ref('')
 const cargando = ref(true)
 const error = ref('')
 
+async function eliminarOrden(orden) {
+  if (!window.confirm(`¿Eliminar la orden #${orden.id}? Se eliminarán sus pagos, comprobantes e historial.`)) return
+  try {
+    await ordenesApi.eliminar(orden.id)
+    await cargar()
+  } catch (e) {
+    error.value = mensajeError(e, 'No se pudo eliminar la orden')
+  }
+}
+
 async function cargar() {
   cargando.value = true
   error.value = ''
@@ -67,14 +77,15 @@ onMounted(cargar)
             <th>Cliente</th>
             <th>Estado</th>
             <th>Total</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="6" class="vacio">Cargando...</td>
+            <td colspan="7" class="vacio">Cargando...</td>
           </tr>
           <tr v-else-if="!ordenes.length">
-            <td colspan="6" class="vacio">No hay órdenes para mostrar</td>
+            <td colspan="7" class="vacio">No hay órdenes para mostrar</td>
           </tr>
           <tr
             v-for="o in ordenes"
@@ -94,6 +105,9 @@ onMounted(cargar)
             <td>{{ o.vehiculo.cliente?.nombre }}</td>
             <td><EstadoBadge :estado="o.estado" /></td>
             <td>{{ formatearPesos(o.total) }}</td>
+            <td>
+              <button class="btn-eliminar" type="button" @click.stop="eliminarOrden(o)">Eliminar</button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -115,5 +129,12 @@ onMounted(cargar)
 }
 .fila {
   cursor: pointer;
+}
+.btn-eliminar {
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font: inherit;
 }
 </style>

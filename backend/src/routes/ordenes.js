@@ -124,8 +124,14 @@ async function agregarItems(tx, ordenId, usuarioId, servicios, productos) {
   }
 }
 
-async function detalleOrden(db, id) {
-  const orden = await db.ordenTrabajo.findUnique({ where: { id }, include: incluirDetalle })
+function alcanceOrden(id, perfil) {
+  return perfil?.rol === 'dueno'
+    ? { id }
+    : { id, vehiculo: { cliente: { registradoPorId: perfil.id } } }
+}
+
+async function detalleOrden(db, id, perfil) {
+  const orden = await db.ordenTrabajo.findFirst({ where: alcanceOrden(id, perfil), include: incluirDetalle })
   return orden ? { ...orden, total: totalOrden(orden) } : null
 }
 
@@ -134,6 +140,7 @@ router.get('/', verificarToken, async (req, res) => {
   const estado = String(req.query.estado ?? '').toUpperCase()
   const q = String(req.query.q ?? '').trim()
   const where = {}
+  if (req.perfil.rol !== 'dueno') where.vehiculo = { cliente: { registradoPorId: req.perfil.id } }
 
   if (estado) {
     if (!ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' })
@@ -184,11 +191,50 @@ router.get('/:id', verificarToken, async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(404).json({ error: 'Orden no encontrada' })
   try {
-    const orden = await detalleOrden(prisma, id)
+    const orden = await detalleOrden(prisma, id, req.perfil)
     if (!orden) return res.status(404).json({ error: 'Orden no encontrada' })
     res.json(orden)
   } catch (e) {
     responderError(res, e, 'No se pudo obtener la orden')
+  }
+})
+
+// Eliminar una orden y sus dependencias
+router.delete('/:id', verificarToken, async (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Orden no encontrada' })
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const orden = await tx.ordenTrabajo.findFirst({
+        where: alcanceOrden(id, req.perfil),
+        select: { id: true, estado: true, ordenProductos: { select: { productoId: true, cantidad: true } } }
+      })
+      if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
+
+      // Las órdenes activas descontaron stock al crearse; las canceladas ya lo devolvieron.
+      if (orden.estado !== 'CANCELADO') {
+        for (const item of orden.ordenProductos) {
+          await tx.producto.update({
+            where: { id: item.productoId },
+            data: { stockActual: { increment: item.cantidad } }
+          })
+        }
+      }
+
+      const pagos = await tx.pago.findMany({ where: { ordenId: id }, select: { id: true } })
+      const pagoIds = pagos.map((p) => p.id)
+      if (pagoIds.length) await tx.comprobante.deleteMany({ where: { pagoId: { in: pagoIds } } })
+      await tx.pago.deleteMany({ where: { ordenId: id } })
+      await tx.movimientoInventario.deleteMany({ where: { ordenId: id } })
+      await tx.notificacion.deleteMany({ where: { ordenId: id } })
+      await tx.presupuesto.updateMany({ where: { ordenId: id }, data: { ordenId: null, estado: 'APROBADO' } })
+      await tx.ordenTrabajo.delete({ where: { id } })
+    }, TX)
+
+    res.json({ ok: true })
+  } catch (e) {
+    responderError(res, e, 'No se pudo eliminar la orden')
   }
 })
 
@@ -210,7 +256,12 @@ router.post('/', verificarToken, async (req, res) => {
     if (!servicios.length) throw new ErrorNegocio('Agrega al menos un servicio a la orden')
 
     const id = await prisma.$transaction(async (tx) => {
-      const vehiculo = await tx.vehiculo.findUnique({ where: { id: vehiculoId } })
+      const vehiculo = await tx.vehiculo.findFirst({
+        where: {
+          id: vehiculoId,
+          ...(req.perfil.rol === 'dueno' ? {} : { cliente: { registradoPorId: req.perfil.id } })
+        }
+      })
       if (!vehiculo) throw new ErrorNegocio('El vehículo no existe', 404)
 
       const orden = await tx.ordenTrabajo.create({
@@ -232,7 +283,7 @@ router.post('/', verificarToken, async (req, res) => {
       return orden.id
     }, TX)
 
-    res.status(201).json(await detalleOrden(prisma, id))
+    res.status(201).json(await detalleOrden(prisma, id, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo crear la orden')
   }
@@ -247,8 +298,8 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
 
   try {
     await prisma.$transaction(async (tx) => {
-      const orden = await tx.ordenTrabajo.findUnique({
-        where: { id },
+      const orden = await tx.ordenTrabajo.findFirst({
+        where: alcanceOrden(id, req.perfil),
         include: {
           ordenProductos: true,
           vehiculo: { select: { patente: true, clienteId: true } }
@@ -294,7 +345,7 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
       })
     }, TX)
 
-    res.json(await detalleOrden(prisma, id))
+    res.json(await detalleOrden(prisma, id, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo cambiar el estado')
   }
@@ -307,14 +358,14 @@ router.post('/:id/servicios', verificarToken, async (req, res) => {
   try {
     const servicios = leerItems([req.body], 'servicioId', 'servicios')
     await prisma.$transaction(async (tx) => {
-      const orden = await tx.ordenTrabajo.findUnique({ where: { id } })
+      const orden = await tx.ordenTrabajo.findFirst({ where: alcanceOrden(id, req.perfil) })
       if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
       if (ESTADOS_CERRADOS.includes(orden.estado)) {
         throw new ErrorNegocio('La orden está cerrada (entregada o cancelada) y no se puede modificar')
       }
       await agregarItems(tx, id, req.usuario.id, servicios, [])
     }, TX)
-    res.status(201).json(await detalleOrden(prisma, id))
+    res.status(201).json(await detalleOrden(prisma, id, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo agregar el servicio')
   }
@@ -327,14 +378,14 @@ router.post('/:id/productos', verificarToken, async (req, res) => {
   try {
     const productos = leerItems([req.body], 'productoId', 'productos')
     await prisma.$transaction(async (tx) => {
-      const orden = await tx.ordenTrabajo.findUnique({ where: { id } })
+      const orden = await tx.ordenTrabajo.findFirst({ where: alcanceOrden(id, req.perfil) })
       if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
       if (ESTADOS_CERRADOS.includes(orden.estado)) {
         throw new ErrorNegocio('La orden está cerrada (entregada o cancelada) y no se puede modificar')
       }
       await agregarItems(tx, id, req.usuario.id, [], productos)
     }, TX)
-    res.status(201).json(await detalleOrden(prisma, id))
+    res.status(201).json(await detalleOrden(prisma, id, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo agregar el producto')
   }

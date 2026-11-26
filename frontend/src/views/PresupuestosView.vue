@@ -17,6 +17,16 @@ const estado = ref('')
 const cargando = ref(true)
 const error = ref('')
 
+async function eliminarPresupuesto(presupuesto) {
+  if (!window.confirm(`¿Eliminar el presupuesto #${presupuesto.id}? Esta acción no se puede deshacer.`)) return
+  try {
+    await presupuestosApi.eliminar(presupuesto.id)
+    await cargar()
+  } catch (e) {
+    error.value = mensajeError(e, 'No se pudo eliminar el presupuesto')
+  }
+}
+
 async function cargar() {
   cargando.value = true
   error.value = ''
@@ -78,14 +88,15 @@ onMounted(cargar)
             <th>Vence</th>
             <th>Estado</th>
             <th class="der">Total</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="7" class="vacio">Cargando...</td>
+            <td colspan="8" class="vacio">Cargando...</td>
           </tr>
           <tr v-else-if="!presupuestos.length">
-            <td colspan="7" class="vacio">
+            <td colspan="8" class="vacio">
               <template v-if="busqueda || estado">Ningún presupuesto coincide con el filtro.</template>
               <template v-else>
                 Aún no hay presupuestos. Crea el primero con <strong>+ Nuevo presupuesto</strong>.
@@ -110,6 +121,17 @@ onMounted(cargar)
               </RouterLink>
             </td>
             <td class="der">{{ formatearPesos(p.total) }}</td>
+            <td>
+              <button
+                class="btn-eliminar"
+                type="button"
+                :disabled="p.ordenId"
+                :title="p.ordenId ? 'El presupuesto convertido no se puede eliminar' : ''"
+                @click.stop="eliminarPresupuesto(p)"
+              >
+                Eliminar
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -135,6 +157,17 @@ onMounted(cargar)
 .der {
   text-align: right;
   white-space: nowrap;
+}
+.btn-eliminar {
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font: inherit;
+}
+.btn-eliminar:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
 }
 .orden {
   display: block;

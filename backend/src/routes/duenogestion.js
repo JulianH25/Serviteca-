@@ -80,7 +80,7 @@ router.get('/personal', verificarDueno, async (req, res) => {
           email: true,
           nombre: true,
           rol: true,
-          clientesRegistrados: { select: { id: true, vehiculos: { select: { id: true } } } }
+          clientesRegistrados: { select: { rut: true, vehiculos: { select: { id: true } } } }
         },
         orderBy: { nombre: 'asc' }
       }),
@@ -106,7 +106,7 @@ router.get('/personal', verificarDueno, async (req, res) => {
           ordenes: 0,
           activas: 0,
           vehiculos: new Set(p.clientesRegistrados.flatMap((c) => c.vehiculos.map((v) => v.id))),
-          clientes: new Set(p.clientesRegistrados.map((c) => c.id)),
+          clientes: new Set(p.clientesRegistrados.map((c) => c.rut)),
           vendido: 0,
           cobrado: 0,
           porCobrar: 0
@@ -281,7 +281,6 @@ router.get('/clientes', verificarDueno, async (req, res) => {
           rut: c.rut,
           telefono: c.telefono,
           correo: c.correo,
-          estadoValidacion: c.estadoValidacion,
           cuentaPortal: c.perfil?.email ?? null,
           creadoEn: c.creadoEn,
           vehiculos: c.vehiculos.length,

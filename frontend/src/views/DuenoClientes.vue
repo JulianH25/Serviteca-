@@ -43,17 +43,6 @@ async function abrir(c) {
   }
 }
 
-async function validar(c) {
-  const rut = window.prompt(`RUT de ${c.nombre}`)
-  if (!rut) return
-  try {
-    await api.patch(`/clientes/${c.id}/validar`, { rut })
-    await cargar()
-  } catch (e) {
-    error.value = e.response?.data?.error || 'No se pudo validar el cliente'
-  }
-}
-
 onMounted(cargar)
 </script>
 
@@ -74,7 +63,7 @@ onMounted(cargar)
           <tr>
             <th>Nombre</th><th>RUT</th><th>Teléfono</th><th>Correo</th><th>Cuenta portal</th>
             <th class="num">Autos</th><th class="num">Órdenes</th>
-            <th class="num">Total</th><th class="num">Pagado</th><th class="num">Saldo</th><th>Accion</th>
+            <th class="num">Total</th><th class="num">Pagado</th><th class="num">Saldo</th>
           </tr>
         </thead>
         <tbody>
@@ -89,9 +78,8 @@ onMounted(cargar)
             <td class="num">{{ clp(c.total) }}</td>
             <td class="num d-pos">{{ clp(c.pagado) }}</td>
             <td class="num d-neg">{{ clp(c.saldo) }}</td>
-            <td><button v-if="c.estadoValidacion === 'PENDIENTE'" @click.stop="validar(c)">Validar RUT</button></td>
           </tr>
-          <tr v-if="!lista.length"><td colspan="11" class="d-vacio">Sin clientes</td></tr>
+          <tr v-if="!lista.length"><td colspan="10" class="d-vacio">Sin clientes</td></tr>
         </tbody>
       </table>
       <p style="font-size: .8rem; color: #6b7280">Haz clic en un cliente para ver el detalle.</p>

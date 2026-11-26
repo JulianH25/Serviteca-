@@ -64,8 +64,8 @@ async function convertirEnOrden() {
   accionando.value = true
   error.value = ''
   try {
-    const orden = await presupuestosApi.convertirEnOrden(props.id)
-    router.push(`/ordenes/${orden.id}`)
+    const { ordenId } = await presupuestosApi.convertirEnOrden(props.id)
+    router.push(`/ordenes/${ordenId}`)
   } catch (e) {
     error.value = mensajeError(e, 'No se pudo crear la orden')
     accionando.value = false

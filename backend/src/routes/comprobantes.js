@@ -4,6 +4,12 @@ import { prisma } from '../lib/prisma.js'
 
 const router = Router()
 
+function alcanceOrden(id, perfil) {
+  return perfil?.rol === 'dueno'
+    ? { id }
+    : { id, vehiculo: { cliente: { registradoPorId: perfil.id } } }
+}
+
 router.get('/:id', verificarToken, async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(404).json({ error: 'Comprobante no encontrado' })
@@ -16,8 +22,8 @@ router.get('/:id', verificarToken, async (req, res) => {
     })
     if (!comprobante) return res.status(404).json({ error: 'Comprobante no encontrado' })
 
-    const orden = await prisma.ordenTrabajo.findUnique({
-      where: { id: comprobante.pago.ordenId },
+    const orden = await prisma.ordenTrabajo.findFirst({
+      where: alcanceOrden(comprobante.pago.ordenId, req.perfil),
       include: {
         vehiculo: {
           select: {
@@ -29,6 +35,7 @@ router.get('/:id', verificarToken, async (req, res) => {
         ordenProductos: { include: { producto: { select: { nombre: true } } } }
       }
     })
+    if (!orden) return res.status(404).json({ error: 'Comprobante no encontrado' })
 
     const total =
       orden.ordenServicios.reduce((s, x) => s + x.cantidad * x.precioUnitario, 0) +

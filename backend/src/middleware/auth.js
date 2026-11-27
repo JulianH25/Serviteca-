@@ -64,9 +64,9 @@ export async function identificar(req, res, next) {
   }
 }
 
-// Solo administradores / trabajadores
+// Solo roles de personal permitidos explícitamente
 export function soloPersonal(req, res, next) {
-  if (!req.perfil || req.perfil.rol === 'cliente') {
+  if (!req.perfil || !['dueno', 'mecanico'].includes(req.perfil.rol)) {
     return res.status(403).json({
       error: 'Tu cuenta no está autorizada para usar el sistema',
       codigo: 'NO_AUTORIZADO'

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { verificarToken } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
+import { ocultarRut } from '../lib/datos-sensibles.js'
 
 const router = Router()
 
@@ -121,7 +122,7 @@ router.get('/', verificarToken, async (req, res) => {
         }
       }
     })
-    res.json(presupuestos)
+    res.json(ocultarRut(presupuestos, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudieron obtener los presupuestos')
   }
@@ -134,7 +135,7 @@ router.get('/:id', verificarToken, async (req, res) => {
   try {
     const presupuesto = await prisma.presupuesto.findFirst({ where: alcancePresupuesto(id, req.perfil), include: incluirDetalle })
     if (!presupuesto) return res.status(404).json({ error: 'Presupuesto no encontrado' })
-    res.json(presupuesto)
+    res.json(ocultarRut(presupuesto, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo obtener el presupuesto')
   }

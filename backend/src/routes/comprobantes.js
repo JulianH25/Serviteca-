@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
+import { ocultarRut } from '../lib/datos-sensibles.js'
 
 const router = Router()
 
@@ -46,10 +47,10 @@ router.get('/:id', verificarToken, async (req, res) => {
     })
     const pagado = agg._sum.monto ?? 0
 
-    res.json({
+    res.json(ocultarRut({
       ...comprobante,
       orden: { ...orden, total, pagado, saldo: total - pagado }
-    })
+    }, req.perfil))
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'No se pudo obtener el comprobante' })

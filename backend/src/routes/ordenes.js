@@ -4,7 +4,9 @@ import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
 import { limpiarPatente } from '../lib/validaciones.js'
 import { mensajeEstado, notificarEstado } from '../lib/notificaciones.js'
-import { enviarCorreoEstado } from '../lib/correo.js'
+import { prepararCorreoEstado } from '../lib/correo.js'
+import { encolarCorreo } from '../lib/cola-correos.js'
+import { ocultarRut } from '../lib/datos-sensibles.js'
 
 const router = Router()
 
@@ -176,12 +178,12 @@ router.get('/', verificarToken, async (req, res) => {
         ordenProductos: { select: { cantidad: true, precioUnitario: true } }
       }
     })
-    res.json(
+    res.json(ocultarRut(
       ordenes.map(({ ordenServicios, ordenProductos, ...o }) => ({
         ...o,
         total: totalOrden({ ordenServicios, ordenProductos })
       }))
-    )
+    , req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudieron obtener las órdenes')
   }
@@ -194,7 +196,7 @@ router.get('/:id', verificarToken, async (req, res) => {
   try {
     const orden = await detalleOrden(prisma, id, req.perfil)
     if (!orden) return res.status(404).json({ error: 'Orden no encontrada' })
-    res.json(orden)
+    res.json(ocultarRut(orden, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo obtener la orden')
   }
@@ -361,22 +363,22 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
     }, TX)
 
     let correoEnviado = false
+    let correoPendiente = false
     if (correoCliente?.destino) {
       try {
-        await enviarCorreoEstado({
+        await encolarCorreo(prisma, prepararCorreoEstado({
           destino: correoCliente.destino,
           nombre: correoCliente.nombre,
-          patente: correoCliente.patente,
           estado,
           ordenId: id,
           mensaje: mensajeEstado(correoCliente.patente, estado)
-        })
-        correoEnviado = true
+        }))
+        correoPendiente = true
       } catch (e) {
-        console.error('No se pudo enviar el correo de estado:', e)
+        console.error('No se pudo encolar el correo de estado:', e)
       }
     }
-    res.json({ ...(await detalleOrden(prisma, id, req.perfil)), correoEnviado })
+    res.json(ocultarRut({ ...(await detalleOrden(prisma, id, req.perfil)), correoEnviado, correoPendiente }, req.perfil))
   } catch (e) {
     responderError(res, e, 'No se pudo cambiar el estado')
   }

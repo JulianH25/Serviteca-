@@ -16,6 +16,7 @@ import duenoGestionRouter from './routes/duenogestion.js'
 import { identificar, verificarToken } from './middleware/auth.js'
 import { prisma } from './lib/prisma.js'
 import reportesRouter from './routes/reportes.js'
+import { iniciarColaCorreos } from './lib/cola-correos.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -68,6 +69,8 @@ app.use('/api/comprobantes', comprobantesRouter)
 app.use('/api/dueno', duenoRouter)
 app.use('/api/dueno', duenoGestionRouter)
 app.use('/api/reportes', reportesRouter)  
+
+iniciarColaCorreos()
 
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }))
 

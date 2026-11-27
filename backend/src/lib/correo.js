@@ -11,7 +11,7 @@ function obtenerConfiguracion() {
   return { host, port, user, pass, remitente }
 }
 
-async function enviarCorreo({ destino, asunto, texto, html }) {
+export async function enviarCorreo({ destino, asunto, texto, html }) {
   const configuracion = obtenerConfiguracion()
 
   if (!configuracion) {
@@ -54,14 +54,16 @@ export function asuntoEstadoVehiculo(estado) {
     : 'Actualizacion del estado de tu vehiculo - Serviteca'
 }
 
-export async function enviarCorreoEstado({ destino, nombre, patente, estado, ordenId, mensaje }) {
+export function prepararCorreoEstado({ destino, nombre, estado, ordenId, mensaje }) {
   const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
-  const texto = `${saludo}\n\n${mensaje}\n\nOrden #${ordenId}.\n\nServiteca`
-  const html = `<p>${saludo}</p><p>${mensaje}</p><p><strong>Orden #${ordenId}</strong></p><p>Serviteca</p>`
-  return enviarCorreo({ destino, asunto: asuntoEstadoVehiculo(estado), texto, html })
+  return { destino, asunto: asuntoEstadoVehiculo(estado), texto: `${saludo}\n\n${mensaje}\n\nOrden #${ordenId}.\n\nServiteca`, html: `<p>${saludo}</p><p>${mensaje}</p><p><strong>Orden #${ordenId}</strong></p><p>Serviteca</p>` }
 }
 
-export async function enviarComprobantePago({ destino, nombre, numero, monto, metodo, ordenId, patente, total, pagado, saldo, fecha }) {
+export async function enviarCorreoEstado({ destino, nombre, patente, estado, ordenId, mensaje }) {
+  return enviarCorreo(prepararCorreoEstado({ destino, nombre, estado, ordenId, mensaje }))
+}
+
+export function prepararComprobantePago({ destino, nombre, numero, monto, metodo, ordenId, patente, total, pagado, saldo, fecha }) {
   const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
   const texto = [
     saludo,
@@ -80,5 +82,9 @@ export async function enviarComprobantePago({ destino, nombre, numero, monto, me
     'Serviteca'
   ].join('\n')
   const html = `<p>${saludo}</p><p>Recibimos tu pago en Serviteca.</p><ul><li><strong>Comprobante:</strong> ${numero}</li><li><strong>Orden:</strong> #${ordenId}</li><li><strong>Vehiculo:</strong> ${patente}</li><li><strong>Monto pagado:</strong> $${monto.toLocaleString('es-CL')}</li><li><strong>Metodo:</strong> ${metodo}</li><li><strong>Fecha:</strong> ${new Date(fecha).toLocaleString('es-CL')}</li><li><strong>Saldo pendiente:</strong> $${saldo.toLocaleString('es-CL')}</li></ul><p>Serviteca</p>`
-  return enviarCorreo({ destino, asunto: `Comprobante de pago ${numero} - Serviteca`, texto, html })
+  return { destino, asunto: `Comprobante de pago ${numero} - Serviteca`, texto, html }
+}
+
+export async function enviarComprobantePago(datos) {
+  return enviarCorreo(prepararComprobantePago(datos))
 }

@@ -182,4 +182,17 @@ router.get('/pagos', verificarDueno, async (req, res) => {
   }
 })
 
+router.post('/correos/reintentar', verificarDueno, async (req, res) => {
+  try {
+    const resultado = await prisma.correoPendiente.updateMany({
+      where: { estado: 'ERROR' },
+      data: { estado: 'PENDIENTE', proximoIntento: new Date(), ultimoError: null }
+    })
+    res.json({ reintentados: resultado.count })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'No se pudieron reintentar los correos' })
+  }
+})
+
 export default router

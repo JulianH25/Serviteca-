@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
-import { enviarComprobantePago } from '../lib/correo.js'
+import { prepararComprobantePago } from '../lib/correo.js'
+import { encolarCorreo } from '../lib/cola-correos.js'
 
 const router = Router()
 
@@ -86,6 +87,7 @@ async function registrarPago(req, res, ordenId) {
 
     const pago = await prisma.pago.findUnique({ where: { id: pagoId }, include: incluirPago })
     let correoEnviado = false
+    let correoPendiente = false
     const datosCorreo = await prisma.pago.findUnique({
       where: { id: pagoId },
       select: {
@@ -113,7 +115,7 @@ async function registrarPago(req, res, ordenId) {
     if (destino) {
       try {
         const resumen = await resumenPagos(prisma, ordenId)
-        await enviarComprobantePago({
+        await encolarCorreo(prisma, prepararComprobantePago({
           destino,
           nombre: cliente.nombre,
           numero: datosCorreo.comprobante.numero,
@@ -125,13 +127,13 @@ async function registrarPago(req, res, ordenId) {
           pagado: resumen.pagado,
           saldo: resumen.saldo,
           fecha: datosCorreo.fecha
-        })
-        correoEnviado = true
+        }))
+        correoPendiente = true
       } catch (e) {
         console.error('No se pudo enviar el comprobante por correo:', e)
       }
     }
-    res.status(201).json({ ...pago, correoEnviado })
+    res.status(201).json({ ...pago, correoEnviado, correoPendiente })
   } catch (e) {
     responderError(res, e, 'No se pudo registrar el pago')
   }

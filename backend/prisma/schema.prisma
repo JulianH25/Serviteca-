@@ -315,3 +315,21 @@ model Notificacion {
   @@map("notificaciones")
   @@schema("public")
 }
+
+model CorreoPendiente {
+  id            Int       @id @default(autoincrement())
+  destino       String    @db.VarChar(120)
+  asunto        String    @db.VarChar(200)
+  texto         String
+  html          String?
+  estado        String    @default("PENDIENTE") @db.VarChar(15)
+  intentos      Int       @default(0)
+  proximoIntento DateTime @default(now()) @map("proximo_intento")
+  ultimoError   String?   @map("ultimo_error")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  enviadoEn     DateTime? @map("enviado_en")
+
+  @@index([estado, proximoIntento], map: "idx_correos_pendientes")
+  @@map("correos_pendientes")
+  @@schema("public")
+}

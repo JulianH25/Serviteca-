@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { verificarToken } from '../middleware/auth.js'
+import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 
 const router = Router()
@@ -21,7 +21,7 @@ router.get('/', verificarToken, async (req, res) => {
 })
 
 // Crear servicio
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarDueno, async (req, res) => {
   const nombre = String(req.body.nombre ?? '').trim()
   const descripcion = String(req.body.descripcion ?? '').trim() || null
   const precioBase = req.body.precioBase ?? 0
@@ -42,7 +42,7 @@ router.post('/', verificarToken, async (req, res) => {
 })
 
 // Editar / activar / desactivar
-router.patch('/:id', verificarToken, async (req, res) => {
+router.patch('/:id', verificarDueno, async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(404).json({ error: 'Servicio no encontrado' })
 

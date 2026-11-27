@@ -72,7 +72,20 @@ const router = createRouter({
         { path: 'pagos', name: 'dueno-pagos', component: DuenoPagos },
         { path: 'reportes', name: 'dueno-reportes', component: DuenoReportes },
         { path: 'personal', name: 'dueno-personal', component: DuenoPersonal },
-        { path: 'clientes', name: 'dueno-clientes', component: DuenoClientes }
+        { path: 'clientes', name: 'dueno-clientes', component: DuenoClientes },
+        { path: 'inventario', name: 'dueno-inventario', component: ProductosView },
+        {
+          path: 'inventario/nuevo',
+          name: 'dueno-inventario-nuevo',
+          component: RegistrarProducto,
+          meta: { soloDueno: true }
+        },
+        {
+          path: 'inventario/:id',
+          name: 'dueno-inventario-detalle',
+          component: ProductoDetalle,
+          props: true
+        }
       ]
     },
 
@@ -99,7 +112,7 @@ const router = createRouter({
         { path: 'ordenes/:id', name: 'orden-detalle', component: OrdenDetalle, props: true },
         { path: 'servicios', name: 'servicios', component: ServiciosView },
         { path: 'productos', name: 'productos', component: ProductosView },
-        { path: 'productos/nuevo', name: 'producto-nuevo', component: RegistrarProducto },
+        { path: 'productos/nuevo', name: 'producto-nuevo', component: RegistrarProducto, meta: { soloDueno: true } },
         { path: 'productos/:id', name: 'producto-detalle', component: ProductoDetalle, props: true },
         // ---- Sprint 3: presupuestos, pagos y comprobantes ----
         { path: 'presupuestos', name: 'presupuestos', component: PresupuestosView },

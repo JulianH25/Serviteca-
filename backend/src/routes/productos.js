@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { verificarToken } from '../middleware/auth.js'
+import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
 
@@ -65,7 +65,7 @@ router.get('/:id', verificarToken, async (req, res) => {
 })
 
 // Crear producto (si trae stock inicial, registra la ENTRADA)
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarDueno, async (req, res) => {
   const nombre = String(req.body.nombre ?? '').trim()
   const codigo = String(req.body.codigo ?? '').trim() || null
   const categoriaId = req.body.categoriaId ? Number(req.body.categoriaId) : null
@@ -119,7 +119,7 @@ router.post('/', verificarToken, async (req, res) => {
 })
 
 // Editar datos (el stock solo cambia con movimientos)
-router.patch('/:id', verificarToken, async (req, res) => {
+router.patch('/:id', verificarDueno, async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(404).json({ error: 'Producto no encontrado' })
 
@@ -157,7 +157,7 @@ router.patch('/:id', verificarToken, async (req, res) => {
 })
 
 // Registrar movimiento de inventario (ENTRADA o SALIDA)
-router.post('/:id/movimientos', verificarToken, async (req, res) => {
+router.post('/:id/movimientos', verificarDueno, async (req, res) => {
   const id = Number(req.params.id)
   const tipo = String(req.body.tipo ?? '').toUpperCase()
   const cantidad = Number(req.body.cantidad)

@@ -1,17 +1,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
-import { productosApi, mensajeError } from '@/services/api'
+import { RouterLink, useRoute } from 'vue-router'
+import { api, productosApi, mensajeError } from '@/services/api'
 import { formatearPesos } from '@/utils/validaciones'
 import { fechaHora, nombreUsuario } from '@/utils/ordenes'
 
 const props = defineProps({ id: { type: String, required: true } })
+const route = useRoute()
 
 const producto = ref(null)
 const cargando = ref(true)
 const error = ref('')
 const ok = ref('')
 const enviando = ref(false)
+const esDueno = ref(false)
+const baseInventario = computed(() => route.path.startsWith('/dueno/inventario') ? '/dueno/inventario' : '/productos')
 
 const mov = reactive({ tipo: 'ENTRADA', cantidad: 1, motivo: '' })
 const edicion = reactive({ costo: 0, precioVenta: 0, stockMinimo: 0 })
@@ -90,11 +93,16 @@ function alternarActivo() {
   )
 }
 
-onMounted(cargar)
+onMounted(async () => {
+  await Promise.all([
+    cargar(),
+    api.get('/me').then(({ data }) => { esDueno.value = data.rol === 'dueno' }).catch(() => {})
+  ])
+})
 </script>
 
 <template>
-  <RouterLink to="/productos" class="volver">← Volver al inventario</RouterLink>
+  <RouterLink :to="baseInventario" class="volver">← Volver al inventario</RouterLink>
 
   <p v-if="cargando">Cargando...</p>
   <p v-else-if="!producto" class="alerta alerta-error">{{ error }}</p>
@@ -108,7 +116,7 @@ onMounted(cargar)
           <template v-if="!producto.activo"> · Inactivo</template>
         </p>
       </div>
-      <button type="button" class="btn btn-secundario" @click="alternarActivo">
+      <button v-if="esDueno" type="button" class="btn btn-secundario" @click="alternarActivo">
         {{ producto.activo ? 'Desactivar' : 'Activar' }}
       </button>
     </div>
@@ -124,8 +132,9 @@ onMounted(cargar)
         <h2>Stock actual</h2>
         <p class="stock" :class="{ bajo: stockBajo }">{{ producto.stockActual }}</p>
 
-        <h2>Registrar movimiento</h2>
-        <form class="mov" @submit.prevent="registrarMovimiento">
+        <template v-if="esDueno">
+          <h2>Registrar movimiento</h2>
+          <form class="mov" @submit.prevent="registrarMovimiento">
           <select v-model="mov.tipo">
             <option value="ENTRADA">Entrada (compra / reposición)</option>
             <option value="SALIDA">Salida (merma / uso)</option>
@@ -133,10 +142,12 @@ onMounted(cargar)
           <input v-model.number="mov.cantidad" type="number" min="1" placeholder="Cantidad" />
           <input v-model="mov.motivo" maxlength="200" placeholder="Motivo (opcional)" />
           <button type="submit" class="btn btn-primario" :disabled="enviando">Registrar</button>
-        </form>
+          </form>
+        </template>
+        <p v-else class="desc">Vista de solo lectura para mecánicos.</p>
       </div>
 
-      <div class="card">
+      <div v-if="esDueno" class="card">
         <h2>Datos del producto</h2>
         <form class="mov" @submit.prevent="guardarDatos">
           <label>Costo (CLP)</label>

@@ -14,6 +14,7 @@ const salir = () =>
         <RouterLink :to="{ name: 'dueno-pagos' }" exact-active-class="on">Pagos</RouterLink>
         <RouterLink :to="{ name: 'dueno-personal' }" exact-active-class="on">Personal</RouterLink>
         <RouterLink :to="{ name: 'dueno-clientes' }" exact-active-class="on">Clientes</RouterLink>
+        <RouterLink :to="{ name: 'dueno-inventario' }" exact-active-class="on">Inventario</RouterLink>
         <RouterLink :to="{ name: 'dueno-reportes' }" exact-active-class="on">Reportes</RouterLink>
       </nav>
       <div class="d-acciones">

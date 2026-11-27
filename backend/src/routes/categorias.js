@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { verificarToken } from '../middleware/auth.js'
+import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 
 const router = Router()
@@ -14,7 +14,7 @@ router.get('/', verificarToken, async (req, res) => {
   }
 })
 
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarDueno, async (req, res) => {
   const nombre = String(req.body.nombre ?? '').trim()
   if (!nombre || nombre.length > 60) return res.status(400).json({ error: 'Nombre de categoría inválido' })
   try {

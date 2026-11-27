@@ -1,9 +1,11 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { productosApi, categoriasApi, mensajeError } from '@/services/api'
 
 const router = useRouter()
+const route = useRoute()
+const baseInventario = route.path.startsWith('/dueno/inventario') ? '/dueno/inventario' : '/productos'
 const form = reactive({
   nombre: '',
   codigo: '',
@@ -61,7 +63,7 @@ async function guardar() {
       stockActual: Number(form.stockActual),
       stockMinimo: Number(form.stockMinimo)
     })
-    router.push(`/productos/${p.id}`)
+    router.push(`${baseInventario}/${p.id}`)
   } catch (e) {
     error.value = mensajeError(e, 'No se pudo registrar el producto')
   } finally {

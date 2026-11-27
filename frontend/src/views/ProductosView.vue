@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { productosApi, categoriasApi, mensajeError } from '@/services/api'
+import { api, productosApi, categoriasApi, mensajeError } from '@/services/api'
 import { formatearPesos } from '@/utils/validaciones'
 
 const route = useRoute()
@@ -14,6 +14,8 @@ const categoriaId = ref('')
 const soloBajo = ref(route.query.stockBajo === 'true')
 const cargando = ref(true)
 const error = ref('')
+const esDueno = ref(false)
+const baseInventario = computed(() => route.path.startsWith('/dueno/inventario') ? '/dueno/inventario' : '/productos')
 
 const esBajo = (p) => p.stockActual <= p.stockMinimo
 
@@ -41,7 +43,9 @@ watch([busqueda, categoriaId, soloBajo], () => {
 
 onMounted(async () => {
   try {
-    categorias.value = await categoriasApi.listar()
+    const [{ data: perfil }, listaCategorias] = await Promise.all([api.get('/me'), categoriasApi.listar()])
+    esDueno.value = perfil.rol === 'dueno'
+    categorias.value = listaCategorias
   } catch (e) {
     error.value = mensajeError(e, 'No se pudieron cargar las categorías')
   }
@@ -55,7 +59,7 @@ onMounted(async () => {
       <h1>Inventario</h1>
       <p class="subtitulo">Productos, stock y alertas de stock bajo</p>
     </div>
-    <RouterLink to="/productos/nuevo" class="btn btn-primario">+ Nuevo producto</RouterLink>
+    <RouterLink v-if="esDueno" :to="`${baseInventario}/nuevo`" class="btn btn-primario">+ Nuevo producto</RouterLink>
   </div>
 
   <div class="card">
@@ -98,7 +102,7 @@ onMounted(async () => {
             :key="p.id"
             class="fila"
             :class="{ inactivo: !p.activo }"
-            @click="router.push(`/productos/${p.id}`)"
+            @click="router.push(`${baseInventario}/${p.id}`)"
           >
             <td>{{ p.codigo || '—' }}</td>
             <td>

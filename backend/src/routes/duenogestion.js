@@ -241,6 +241,7 @@ router.get('/clientes', verificarDueno, async (req, res) => {
       orderBy: { nombre: 'asc' },
       include: {
         perfil: { select: { email: true } },
+        registradoPor: { select: { id: true, nombre: true, email: true, rol: true } },
         vehiculos: {
           select: {
             id: true,
@@ -282,6 +283,7 @@ router.get('/clientes', verificarDueno, async (req, res) => {
           telefono: c.telefono,
           correo: c.correo,
           cuentaPortal: c.perfil?.email ?? null,
+          mecanico: c.registradoPor,
           creadoEn: c.creadoEn,
           vehiculos: c.vehiculos.length,
           ordenes,
@@ -306,6 +308,7 @@ router.get('/clientes/:id', verificarDueno, async (req, res) => {
       where: { id },
       include: {
         perfil: { select: { email: true } },
+        registradoPor: { select: { id: true, nombre: true, email: true, rol: true } },
         vehiculos: {
           orderBy: { creadoEn: 'desc' },
           include: { ordenesTrabajo: { orderBy: { fechaIngreso: 'desc' }, include: incluirOrden } }
@@ -333,6 +336,7 @@ router.get('/clientes/:id', verificarDueno, async (req, res) => {
       telefono: cliente.telefono,
       correo: cliente.correo,
       cuentaPortal: cliente.perfil?.email ?? null,
+      mecanico: cliente.registradoPor,
       creadoEn: cliente.creadoEn,
       resumen: {
         total: validas.reduce((s, o) => s + o.total, 0),

@@ -3,7 +3,8 @@ import { verificarToken } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
 import { limpiarPatente } from '../lib/validaciones.js'
-import { notificarEstado } from '../lib/notificaciones.js'
+import { mensajeEstado, notificarEstado } from '../lib/notificaciones.js'
+import { enviarCorreoEstado } from '../lib/correo.js'
 
 const router = Router()
 
@@ -297,12 +298,21 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
   if (!ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' })
 
   try {
+    let correoCliente = null
     await prisma.$transaction(async (tx) => {
       const orden = await tx.ordenTrabajo.findFirst({
         where: alcanceOrden(id, req.perfil),
         include: {
           ordenProductos: true,
-          vehiculo: { select: { patente: true, clienteId: true } }
+          vehiculo: {
+            select: {
+              patente: true,
+              clienteId: true,
+              cliente: {
+                select: { nombre: true, correo: true, perfil: { select: { email: true } } }
+              }
+            }
+          }
         }
       })
       if (!orden) throw new ErrorNegocio('Orden no encontrada', 404)
@@ -343,9 +353,30 @@ router.patch('/:id/estado', verificarToken, async (req, res) => {
         patente: orden.vehiculo.patente,
         estado
       })
+      correoCliente = {
+        destino: orden.vehiculo.cliente?.correo ?? orden.vehiculo.cliente?.perfil?.email,
+        nombre: orden.vehiculo.cliente?.nombre,
+        patente: orden.vehiculo.patente
+      }
     }, TX)
 
-    res.json(await detalleOrden(prisma, id, req.perfil))
+    let correoEnviado = false
+    if (correoCliente?.destino) {
+      try {
+        await enviarCorreoEstado({
+          destino: correoCliente.destino,
+          nombre: correoCliente.nombre,
+          patente: correoCliente.patente,
+          estado,
+          ordenId: id,
+          mensaje: mensajeEstado(correoCliente.patente, estado)
+        })
+        correoEnviado = true
+      } catch (e) {
+        console.error('No se pudo enviar el correo de estado:', e)
+      }
+    }
+    res.json({ ...(await detalleOrden(prisma, id, req.perfil)), correoEnviado })
   } catch (e) {
     responderError(res, e, 'No se pudo cambiar el estado')
   }

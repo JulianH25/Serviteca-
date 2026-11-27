@@ -61,7 +61,7 @@ onMounted(cargar)
       <table class="d-tabla">
         <thead>
           <tr>
-            <th>Nombre</th><th>RUT</th><th>Teléfono</th><th>Correo</th><th>Cuenta portal</th>
+            <th>Nombre</th><th>RUT</th><th>Teléfono</th><th>Correo</th><th>Mecánico asignado</th><th>Cuenta portal</th>
             <th class="num">Autos</th><th class="num">Órdenes</th>
             <th class="num">Total</th><th class="num">Pagado</th><th class="num">Saldo</th>
           </tr>
@@ -72,6 +72,7 @@ onMounted(cargar)
             <td>{{ c.rut }}</td>
             <td>{{ c.telefono }}</td>
             <td>{{ c.correo ?? '-' }}</td>
+            <td>{{ c.mecanico?.nombre ?? c.mecanico?.email ?? 'Sin asignar' }}</td>
             <td>{{ c.cuentaPortal ?? 'Sin cuenta' }}</td>
             <td class="num">{{ c.vehiculos }}</td>
             <td class="num">{{ c.ordenes }}</td>
@@ -79,7 +80,7 @@ onMounted(cargar)
             <td class="num d-pos">{{ clp(c.pagado) }}</td>
             <td class="num d-neg">{{ clp(c.saldo) }}</td>
           </tr>
-          <tr v-if="!lista.length"><td colspan="10" class="d-vacio">Sin clientes</td></tr>
+          <tr v-if="!lista.length"><td colspan="11" class="d-vacio">Sin clientes</td></tr>
         </tbody>
       </table>
       <p style="font-size: .8rem; color: #6b7280">Haz clic en un cliente para ver el detalle.</p>
@@ -94,6 +95,7 @@ onMounted(cargar)
           <div class="d-dato">RUT<b>{{ detalle.rut }}</b></div>
           <div class="d-dato">Teléfono<b>{{ detalle.telefono }}</b></div>
           <div class="d-dato">Correo<b>{{ detalle.correo ?? '-' }}</b></div>
+          <div class="d-dato">Mecánico asignado<b>{{ detalle.mecanico?.nombre ?? detalle.mecanico?.email ?? 'Sin asignar' }}</b></div>
           <div class="d-dato">Cuenta portal<b>{{ detalle.cuentaPortal ?? 'Sin cuenta' }}</b></div>
           <div class="d-dato">Cliente desde<b>{{ fecha(detalle.creadoEn) }}</b></div>
           <div class="d-dato">Total facturado<b>{{ clp(detalle.resumen.total) }}</b></div>

@@ -32,11 +32,15 @@ app.get('/api/me', identificar, (req, res) =>
 
 app.get('/api/resumen', verificarToken, async (req, res) => {
   try {
+    const alcanceCliente = req.perfil.rol === 'dueno' ? {} : { registradoPorId: req.perfil.id }
     const [clientes, vehiculos, ordenesActivas, productos] = await Promise.all([
-      prisma.cliente.count(),
-      prisma.vehiculo.count(),
+      prisma.cliente.count({ where: alcanceCliente }),
+      prisma.vehiculo.count({ where: { cliente: alcanceCliente } }),
       prisma.ordenTrabajo.count({
-        where: { estado: { in: ['RECEPCIONADO', 'EN_PROCESO', 'TERMINADO'] } }
+        where: {
+          estado: { in: ['RECEPCIONADO', 'EN_PROCESO', 'TERMINADO'] },
+          vehiculo: { cliente: alcanceCliente }
+        }
       }),
       prisma.producto.findMany({
         where: { activo: true },

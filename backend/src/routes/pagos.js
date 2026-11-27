@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { verificarToken, verificarDueno } from '../middleware/auth.js'
 import { prisma } from '../lib/prisma.js'
 import { ErrorNegocio } from '../lib/errores.js'
+import { enviarComprobantePago } from '../lib/correo.js'
 
 const router = Router()
 
@@ -84,7 +85,53 @@ async function registrarPago(req, res, ordenId) {
     }, TX)
 
     const pago = await prisma.pago.findUnique({ where: { id: pagoId }, include: incluirPago })
-    res.status(201).json(pago)
+    let correoEnviado = false
+    const datosCorreo = await prisma.pago.findUnique({
+      where: { id: pagoId },
+      select: {
+        monto: true,
+        metodo: true,
+        fecha: true,
+        comprobante: { select: { numero: true } },
+        orden: {
+          select: {
+            id: true,
+            vehiculo: {
+              select: {
+                patente: true,
+                cliente: {
+                  select: { nombre: true, correo: true, perfil: { select: { email: true } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    const cliente = datosCorreo?.orden?.vehiculo?.cliente
+    const destino = cliente?.correo ?? cliente?.perfil?.email
+    if (destino) {
+      try {
+        const resumen = await resumenPagos(prisma, ordenId)
+        await enviarComprobantePago({
+          destino,
+          nombre: cliente.nombre,
+          numero: datosCorreo.comprobante.numero,
+          monto: datosCorreo.monto,
+          metodo: datosCorreo.metodo,
+          ordenId: datosCorreo.orden.id,
+          patente: datosCorreo.orden.vehiculo.patente,
+          total: resumen.total,
+          pagado: resumen.pagado,
+          saldo: resumen.saldo,
+          fecha: datosCorreo.fecha
+        })
+        correoEnviado = true
+      } catch (e) {
+        console.error('No se pudo enviar el comprobante por correo:', e)
+      }
+    }
+    res.status(201).json({ ...pago, correoEnviado })
   } catch (e) {
     responderError(res, e, 'No se pudo registrar el pago')
   }

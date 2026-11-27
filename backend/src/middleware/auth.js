@@ -19,11 +19,14 @@ async function obtenerPerfil(id, email, emailVerificado) {
 
   // Personal dado de alta manualmente: se enlaza por correo (solo si el correo está verificado)
   if (!perfil && email && emailVerificado) {
-    const existente = await prisma.perfil.findFirst({
+    const existentes = await prisma.perfil.findMany({
       where: { email: { equals: email, mode: 'insensitive' }, rol: { not: 'cliente' } }
     })
-    if (existente) {
+    if (existentes.length === 1) {
+      const existente = existentes[0]
       perfil = await prisma.perfil.update({ where: { id: existente.id }, data: { id } })
+    } else if (existentes.length > 1) {
+      console.warn(`Perfil ambiguo para ${email}: hay ${existentes.length} perfiles con el mismo correo`)
     }
   }
 

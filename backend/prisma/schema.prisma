@@ -83,7 +83,7 @@ model Vehiculo {
   kilometraje Int?
   creadoEn    DateTime @default(now()) @map("creado_en")
 
-  cliente        Cliente?       @relation(fields: [clienteId], references: [id], onUpdate: Cascade)
+  cliente        Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   ordenesTrabajo OrdenTrabajo[]
   presupuestos   Presupuesto[]
 
